@@ -1,0 +1,3879 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <title>Elephant Research Station — Интерактивный кампус проектов</title>
+  <meta name="description" content="Интерактивная научно-исследовательская станция и кампус проектов Elephantology и Elephantorina." />
+  <meta property="og:title" content="Elephant Research Station" />
+  <meta property="og:description" content="Интерактивная научно-исследовательская станция и кампус проектов Elephantology и Elephantorina." />
+  <meta property="og:type" content="website" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <style>
+    :root {
+      --bg-sand: #E8E4DA;
+      --stone-light: #F4F1EA;
+      --stone-border: #D5CFC2;
+      --ink-dark: #2C302E;
+      --ink-muted: #5A605D;
+      --sage: #2E5A44;
+      --sage-hover: #234735;
+      --sage-soft: rgba(46, 90, 68, 0.12);
+      --terracotta: #C86D51;
+      --terracotta-hover: #B25B40;
+      --terracotta-soft: rgba(200, 109, 81, 0.14);
+      --surface-card: rgba(244, 241, 234, 0.96);
+      --surface-hud: rgba(244, 241, 234, 0.92);
+      --shadow-soft: 0 12px 32px rgba(44, 48, 46, 0.14), 0 2px 6px rgba(44, 48, 46, 0.08);
+      --shadow-hud: 0 4px 16px rgba(44, 48, 46, 0.10);
+      --font-sans: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      --safe-top: env(safe-area-inset-top, 0px);
+      --safe-bottom: env(safe-area-inset-bottom, 0px);
+      --safe-left: env(safe-area-inset-left, 0px);
+      --safe-right: env(safe-area-inset-right, 0px);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      overscroll-behavior: none;
+      background-color: var(--bg-sand);
+      color: var(--ink-dark);
+      font-family: var(--font-sans);
+      user-select: none;
+      -webkit-user-select: none;
+      touch-action: none;
+    }
+
+    #game-canvas {
+      position: fixed;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      display: block;
+      touch-action: none;
+      cursor: crosshair;
+      z-index: 1;
+    }
+
+    /* HUD Layer */
+    .hud-layer {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 10;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: calc(12px + var(--safe-top)) calc(16px + var(--safe-right)) calc(14px + var(--safe-bottom)) calc(16px + var(--safe-left));
+    }
+
+    /* Top Bar */
+    .top-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      width: 100%;
+      max-width: 1380px;
+      margin: 0 auto;
+    }
+
+    .brand-pill {
+      pointer-events: auto;
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      background: var(--surface-hud);
+      border: 1.5px solid var(--ink-dark);
+      border-radius: 12px;
+      padding: 8px 14px;
+      box-shadow: var(--shadow-hud);
+      min-height: 44px;
+    }
+
+    .brand-icon {
+      width: 22px;
+      height: 22px;
+      flex-shrink: 0;
+      color: var(--sage);
+    }
+
+    .brand-title {
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      color: var(--ink-dark);
+      white-space: nowrap;
+    }
+
+    .top-actions {
+      pointer-events: auto;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .hud-btn {
+      appearance: none;
+      background: var(--surface-hud);
+      color: var(--ink-dark);
+      border: 1.5px solid var(--ink-dark);
+      border-radius: 12px;
+      padding: 0 14px;
+      height: 44px;
+      min-width: 44px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      font-family: var(--font-sans);
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      box-shadow: var(--shadow-hud);
+      transition: transform 0.14s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.14s ease, border-color 0.14s ease;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    .hud-btn:hover {
+      background: #FFFFFF;
+      transform: translateY(-1px);
+    }
+
+    .hud-btn:active {
+      transform: translateY(0px) scale(0.98);
+    }
+
+    .hud-btn:focus-visible {
+      outline: 2px solid var(--sage);
+      outline-offset: 2px;
+    }
+
+    .hud-btn.active-toggle {
+      background: var(--sage);
+      color: var(--stone-light);
+      border-color: var(--ink-dark);
+    }
+
+    .hud-btn svg {
+      width: 18px;
+      height: 18px;
+      flex-shrink: 0;
+    }
+
+    /* Proximity Action Button (floating near bottom-center when near entrance) */
+    .interact-banner {
+      pointer-events: auto;
+      align-self: center;
+      margin-top: auto;
+      margin-bottom: 10px;
+      background: var(--stone-light);
+      border: 2px solid var(--ink-dark);
+      border-radius: 14px;
+      padding: 10px 18px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      box-shadow: var(--shadow-soft);
+      cursor: pointer;
+      opacity: 0;
+      transform: translateY(10px) scale(0.96);
+      transition: opacity 0.18s ease, transform 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+      visibility: hidden;
+    }
+
+    .interact-banner.visible {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+      visibility: visible;
+    }
+
+    .interact-key {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 28px;
+      height: 28px;
+      padding: 0 8px;
+      border-radius: 7px;
+      background: var(--sage);
+      color: #fff;
+      font-weight: 700;
+      font-size: 12px;
+      letter-spacing: 0.04em;
+    }
+
+    .interact-banner[data-building="elephantorina"] .interact-key {
+      background: var(--terracotta);
+    }
+
+    .interact-label-group {
+      display: flex;
+      flex-direction: column;
+      text-align: left;
+    }
+
+    .interact-building-name {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--ink-muted);
+    }
+
+    .interact-prompt-text {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--ink-dark);
+    }
+
+    /* Bottom Bar */
+    .bottom-bar {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      width: 100%;
+      max-width: 1380px;
+      margin: 0 auto;
+      gap: 16px;
+    }
+
+    /* Virtual Joystick */
+    .joystick-zone {
+      pointer-events: auto;
+      position: relative;
+      width: 116px;
+      height: 116px;
+      border-radius: 50%;
+      background: rgba(244, 241, 234, 0.72);
+      border: 1.5px solid rgba(44, 48, 46, 0.55);
+      box-shadow: var(--shadow-hud);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      touch-action: none;
+      flex-shrink: 0;
+    }
+
+    .joystick-zone::after {
+      content: "";
+      position: absolute;
+      width: 84px;
+      height: 84px;
+      border-radius: 50%;
+      border: 1px dashed rgba(44, 48, 46, 0.25);
+      pointer-events: none;
+    }
+
+    .joystick-knob {
+      width: 46px;
+      height: 46px;
+      border-radius: 50%;
+      background: var(--sage);
+      border: 2px solid var(--ink-dark);
+      box-shadow: 0 4px 10px rgba(44, 48, 46, 0.22);
+      transform: translate3d(0px, 0px, 0px);
+      pointer-events: none;
+      transition: transform 0.05s linear;
+    }
+
+    .joystick-zone.active .joystick-knob {
+      background: var(--terracotta);
+      transition: none;
+    }
+
+    .controls-hint {
+      pointer-events: auto;
+      margin: 0 auto;
+      background: var(--surface-hud);
+      border: 1.5px solid rgba(44, 48, 46, 0.75);
+      border-radius: 10px;
+      padding: 7px 14px;
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--ink-dark);
+      box-shadow: var(--shadow-hud);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      white-space: nowrap;
+    }
+
+    .hint-sep {
+      color: var(--ink-muted);
+      opacity: 0.6;
+    }
+
+    .reset-pos-mini {
+      appearance: none;
+      background: transparent;
+      border: none;
+      color: var(--sage);
+      font-weight: 700;
+      font-size: 12px;
+      cursor: pointer;
+      text-decoration: underline;
+      text-underline-offset: 2px;
+      padding: 2px 4px;
+    }
+
+    .reset-pos-mini:hover {
+      color: var(--terracotta);
+    }
+
+    /* Modals & Backdrop */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      z-index: 40;
+      background: rgba(44, 48, 46, 0.42);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: calc(16px + var(--safe-top)) calc(16px + var(--safe-right)) calc(16px + var(--safe-bottom)) calc(16px + var(--safe-left));
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+      transition: opacity 0.2s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.2s ease;
+    }
+
+    .modal-backdrop.open {
+      opacity: 1;
+      visibility: visible;
+      pointer-events: auto;
+    }
+
+    .modal-card {
+      width: 100%;
+      max-width: 500px;
+      background: var(--stone-light);
+      border: 2px solid var(--ink-dark);
+      border-radius: 18px;
+      box-shadow: 0 24px 48px rgba(44, 48, 46, 0.24);
+      padding: 28px;
+      position: relative;
+      transform: translateY(14px) scale(0.97);
+      transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+      max-height: calc(100vh - 40px);
+      overflow-y: auto;
+    }
+
+    .modal-backdrop.open .modal-card {
+      transform: translateY(0) scale(1);
+    }
+
+    .modal-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 14px;
+    }
+
+    .modal-kicker {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.09em;
+      text-transform: uppercase;
+      color: var(--sage);
+      margin-bottom: 4px;
+    }
+
+    .modal-card[data-theme="terracotta"] .modal-kicker {
+      color: var(--terracotta);
+    }
+
+    .modal-title {
+      font-size: 24px;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+      color: var(--ink-dark);
+      line-height: 1.2;
+    }
+
+    .modal-close-btn {
+      appearance: none;
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      border: 1.5px solid var(--ink-dark);
+      background: var(--bg-sand);
+      color: var(--ink-dark);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      flex-shrink: 0;
+      transition: background-color 0.14s ease, transform 0.14s ease;
+    }
+
+    .modal-close-btn:hover {
+      background: #FFFFFF;
+      transform: scale(1.04);
+    }
+
+    .modal-illustration {
+      width: 100%;
+      height: 88px;
+      border-radius: 12px;
+      border: 1.5px solid var(--ink-dark);
+      margin-bottom: 18px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 20px;
+      background: var(--sage-soft);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .modal-card[data-theme="terracotta"] .modal-illustration {
+      background: var(--terracotta-soft);
+    }
+
+    .modal-desc {
+      font-size: 15px;
+      line-height: 1.62;
+      color: var(--ink-dark);
+      margin-bottom: 24px;
+    }
+
+    .modal-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .btn-primary, .btn-secondary, .btn-ghost {
+      appearance: none;
+      text-decoration: none;
+      height: 46px;
+      padding: 0 18px;
+      border-radius: 12px;
+      font-family: var(--font-sans);
+      font-size: 14px;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      cursor: pointer;
+      border: 1.5px solid var(--ink-dark);
+      transition: transform 0.14s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.14s ease;
+      white-space: nowrap;
+    }
+
+    .btn-primary {
+      background: var(--sage);
+      color: #FFFFFF;
+      flex: 1 1 auto;
+    }
+
+    .btn-primary:hover {
+      background: var(--sage-hover);
+      transform: translateY(-1px);
+    }
+
+    .modal-card[data-theme="terracotta"] .btn-primary {
+      background: var(--terracotta);
+    }
+
+    .modal-card[data-theme="terracotta"] .btn-primary:hover {
+      background: var(--terracotta-hover);
+    }
+
+    .btn-secondary {
+      background: #FFFFFF;
+      color: var(--ink-dark);
+      flex: 1 1 auto;
+    }
+
+    .btn-secondary:hover {
+      background: var(--bg-sand);
+      transform: translateY(-1px);
+    }
+
+    .btn-ghost {
+      background: var(--bg-sand);
+      color: var(--ink-dark);
+    }
+
+    .btn-ghost:hover {
+      background: #DFDBD0;
+    }
+
+    /* Projects Directory List inside Modal */
+    .projects-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      margin-bottom: 18px;
+    }
+
+    .project-list-item {
+      background: #FFFFFF;
+      border: 1.5px solid var(--ink-dark);
+      border-radius: 14px;
+      padding: 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .project-list-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .project-list-name {
+      font-size: 17px;
+      font-weight: 700;
+      color: var(--ink-dark);
+    }
+
+    .project-wing-tag {
+      font-size: 11.5px;
+      font-weight: 600;
+      color: var(--sage);
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    .project-list-item[data-project="elephantorina"] .project-wing-tag {
+      color: var(--terracotta);
+    }
+
+    .project-list-desc {
+      font-size: 13.5px;
+      line-height: 1.5;
+      color: var(--ink-muted);
+    }
+
+    .project-list-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 4px;
+    }
+
+    .project-list-links .btn-primary,
+    .project-list-links .btn-secondary,
+    .project-list-links .btn-ghost {
+      height: 40px;
+      padding: 0 14px;
+      font-size: 13px;
+    }
+
+    /* Settings Controls */
+    .settings-list {
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+      margin-bottom: 22px;
+    }
+
+    .setting-row {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .setting-label-line {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--ink-dark);
+    }
+
+    .setting-val {
+      font-variant-numeric: tabular-nums;
+      color: var(--ink-muted);
+      font-size: 13px;
+    }
+
+    input[type="range"] {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 100%;
+      height: 8px;
+      border-radius: 999px;
+      background: var(--bg-sand);
+      border: 1px solid var(--ink-dark);
+      outline: none;
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: var(--sage);
+      border: 2px solid var(--ink-dark);
+      cursor: pointer;
+    }
+
+    .segmented-group {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .seg-btn {
+      appearance: none;
+      height: 42px;
+      border-radius: 10px;
+      border: 1.5px solid var(--ink-dark);
+      background: #FFFFFF;
+      color: var(--ink-dark);
+      font-family: var(--font-sans);
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background-color 0.14s ease, color 0.14s ease;
+    }
+
+    .seg-btn.active {
+      background: var(--sage);
+      color: #FFFFFF;
+    }
+
+    .settings-divider {
+      height: 1px;
+      background: rgba(44, 48, 46, 0.14);
+      margin: 4px 0;
+    }
+
+    .controls-hint .mobile-only-hint {
+      display: none;
+    }
+
+    /* Responsive adjustments */
+    @media (max-width: 768px) {
+      .brand-title {
+        font-size: 11.5px;
+        letter-spacing: 0.05em;
+      }
+      .hud-btn .btn-text {
+        display: none;
+      }
+      .hud-btn {
+        padding: 0 12px;
+      }
+      .joystick-zone {
+        display: flex;
+      }
+      .controls-hint {
+        font-size: 11px;
+        padding: 6px 10px;
+        margin: 0;
+      }
+      .controls-hint .desktop-only-hint {
+        display: none;
+      }
+      .controls-hint .mobile-only-hint {
+        display: inline;
+      }
+      .modal-card {
+        padding: 22px 18px;
+      }
+    }
+
+    @media (max-width: 420px) {
+      .brand-pill {
+        padding: 6px 10px;
+      }
+      .brand-title {
+        max-width: 165px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .joystick-zone {
+        width: 104px;
+        height: 104px;
+      }
+    }
+
+    @media (hover: none) and (pointer: coarse) {
+      .joystick-zone {
+        display: flex;
+      }
+    }
+  </style>
+</head>
+<body data-state="playing">
+  <canvas id="game-canvas" data-testid="campus-canvas" aria-label="Карта научно-исследовательской станции Elephant Research Station"></canvas>
+
+  <!-- Minimalist HUD Overlay -->
+  <div class="hud-layer">
+    <header class="top-bar">
+      <div class="brand-pill">
+        <svg class="brand-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M12 3c-4.5 0-8 3.2-8 7.5 0 2.8 1.5 5.2 3.8 6.5L8 21h3v-3h2v3h3l.2-4c2.3-1.3 3.8-3.7 3.8-6.5C20 6.2 16.5 3 12 3z"/>
+          <path d="M9 10h.01M15 10h.01"/>
+          <path d="M12 13c0 2.5-1.5 4-3 4"/>
+        </svg>
+        <span class="brand-title">ELEPHANT RESEARCH STATION</span>
+      </div>
+
+      <nav class="top-actions" aria-label="Управление станцией">
+        <button type="button" id="btn-projects" class="hud-btn" aria-label="Список проектов">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <rect x="3" y="4" width="18" height="16" rx="2"/>
+            <line x1="7" y1="9" x2="17" y2="9"/>
+            <line x1="7" y1="13" x2="17" y2="13"/>
+            <line x1="7" y1="17" x2="12" y2="17"/>
+          </svg>
+          <span class="btn-text">Список проектов</span>
+        </button>
+
+        <button type="button" id="btn-sound" class="hud-btn" aria-label="Включить или отключить звук" aria-pressed="false">
+          <svg id="icon-sound-on" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
+            <path d="M15.54 8.46a5 5 0 0 1 0 7.07"/>
+            <path d="M19.07 4.93a10 10 0 0 1 0 14.14"/>
+          </svg>
+          <svg id="icon-sound-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none;" aria-hidden="true">
+            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
+            <line x1="23" y1="9" x2="17" y2="15"/>
+            <line x1="17" y1="9" x2="23" y2="15"/>
+          </svg>
+          <span class="btn-text" id="label-sound">Звук</span>
+        </button>
+
+        <button type="button" id="btn-settings" class="hud-btn" aria-label="Настройки">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="3"/>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+          </svg>
+          <span class="btn-text">Настройки</span>
+        </button>
+      </nav>
+    </header>
+
+    <!-- Proximity Contextual Button -->
+    <button type="button" id="interact-banner" class="interact-banner" aria-label="Взаимодействовать со зданием">
+      <span class="interact-key">E</span>
+      <span class="interact-label-group">
+        <span class="interact-building-name" id="interact-building-title">ELEPHANTOLOGY</span>
+        <span class="interact-prompt-text">E / Взаимодействовать</span>
+      </span>
+    </button>
+
+    <!-- Bottom Controls & Virtual Joystick -->
+    <div class="bottom-bar">
+      <div id="joystick-zone" class="joystick-zone" role="application" aria-label="Виртуальный джойстик перемещения">
+        <div id="joystick-knob" class="joystick-knob"></div>
+      </div>
+
+      <div class="controls-hint">
+        <span class="desktop-only-hint">WASD / Стрелки — движение <span class="hint-sep">·</span> Клик по карте или зданию — идти <span class="hint-sep">·</span> E — войти</span>
+        <span class="mobile-only-hint">Тап по карте — идти</span>
+        <span class="hint-sep">·</span>
+        <button type="button" id="btn-reset-quick" class="reset-pos-mini" aria-label="Вернуть персонажа в начальную точку">В центр</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Building Project Modal -->
+  <div id="modal-building-backdrop" class="modal-backdrop" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="building-modal-title">
+    <div id="modal-building-card" class="modal-card" data-theme="sage">
+      <div class="modal-header">
+        <div>
+          <div id="building-modal-kicker" class="modal-kicker">Научный исследовательский центр</div>
+          <h2 id="building-modal-title" class="modal-title">Elephantology</h2>
+        </div>
+        <button type="button" id="btn-close-building" class="modal-close-btn" aria-label="Закрыть карточку проекта">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </button>
+      </div>
+
+      <div class="modal-illustration" id="building-modal-art" aria-hidden="true">
+        <!-- Populated dynamically with clean architectural SVG motif -->
+      </div>
+
+      <p id="building-modal-desc" class="modal-desc">
+        Академическая база знаний о семействе Elephantidae. Биология, этология, ветеринария, содержание и научные исследования.
+      </p>
+
+      <div class="modal-actions">
+        <a id="building-link-site" href="https://drinkbeer228.github.io/elephantology/" target="_blank" rel="noopener noreferrer" class="btn-primary">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+            <polyline points="15 3 21 3 21 9"/>
+            <line x1="10" y1="14" x2="21" y2="3"/>
+          </svg>
+          <span>Открыть сайт</span>
+        </a>
+
+        <a id="building-link-github" href="https://github.com/Drinkbeer228/elephantology" target="_blank" rel="noopener noreferrer" class="btn-secondary">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/>
+          </svg>
+          <span>GitHub</span>
+        </a>
+
+        <button type="button" id="btn-close-building-footer" class="btn-ghost">Закрыть</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Projects List Modal -->
+  <div id="modal-projects-backdrop" class="modal-backdrop" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="projects-modal-title">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div>
+          <div class="modal-kicker">Навигация по станции</div>
+          <h2 id="projects-modal-title" class="modal-title">Список проектов</h2>
+        </div>
+        <button type="button" id="btn-close-projects" class="modal-close-btn" aria-label="Закрыть список проектов">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </button>
+      </div>
+
+      <div class="projects-grid">
+        <div class="project-list-item" data-project="elephantology">
+          <div class="project-list-top">
+            <span class="project-list-name">Elephantology</span>
+            <span class="project-wing-tag">Западный павильон · Научная библиотека</span>
+          </div>
+          <p class="project-list-desc">
+            Академическая база знаний о семействе Elephantidae. Биология, этология, ветеринария, содержание и научные исследования.
+          </p>
+          <div class="project-list-links">
+            <a href="https://drinkbeer228.github.io/elephantology/" target="_blank" rel="noopener noreferrer" class="btn-primary">Открыть сайт</a>
+            <a href="https://github.com/Drinkbeer228/elephantology" target="_blank" rel="noopener noreferrer" class="btn-secondary">GitHub</a>
+            <button type="button" class="btn-ghost" data-walk-to="elephantology">Подойти ко входу</button>
+          </div>
+        </div>
+
+        <div class="project-list-item" data-project="elephantorina">
+          <div class="project-list-top">
+            <span class="project-list-name">Elephantorina</span>
+            <span class="project-wing-tag">Восточный павильон · Образовательный центр</span>
+          </div>
+          <p class="project-list-desc">
+            Интерактивная образовательная платформа для изучения слонов. Обучение, викторины и интеллектуальные тренажёры.
+          </p>
+          <div class="project-list-links">
+            <a href="https://drinkbeer228.github.io/elephantorina/" target="_blank" rel="noopener noreferrer" class="btn-primary" style="background: var(--terracotta);">Открыть сайт</a>
+            <a href="https://github.com/Drinkbeer228/elephantorina" target="_blank" rel="noopener noreferrer" class="btn-secondary">GitHub</a>
+            <button type="button" class="btn-ghost" data-walk-to="elephantorina">Подойти ко входу</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-actions">
+        <button type="button" id="btn-close-projects-footer" class="btn-ghost" style="width: 100%;">Вернуться к прогулке</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Settings Modal -->
+  <div id="modal-settings-backdrop" class="modal-backdrop" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="settings-modal-title">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div>
+          <div class="modal-kicker">Параметры среды</div>
+          <h2 id="settings-modal-title" class="modal-title">Настройки станции</h2>
+        </div>
+        <button type="button" id="btn-close-settings" class="modal-close-btn" aria-label="Закрыть настройки">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </button>
+      </div>
+
+      <div class="settings-list">
+        <div class="setting-row">
+          <label class="setting-label-line" for="slider-ambient">
+            <span>Громкость окружения (природа, ветер, птицы)</span>
+            <span class="setting-val" id="val-ambient">70%</span>
+          </label>
+          <input type="range" id="slider-ambient" min="0" max="100" value="70" />
+        </div>
+
+        <div class="setting-row">
+          <label class="setting-label-line" for="slider-sfx">
+            <span>Громкость эффектов (шаги, интерфейс)</span>
+            <span class="setting-val" id="val-sfx">80%</span>
+          </label>
+          <input type="range" id="slider-sfx" min="0" max="100" value="80" />
+        </div>
+
+        <div class="settings-divider"></div>
+
+        <div class="setting-row">
+          <span class="setting-label-line">Качество графики и деталей</span>
+          <div class="segmented-group" role="group" aria-label="Качество графики">
+            <button type="button" id="btn-quality-high" class="seg-btn active">Высокое</button>
+            <button type="button" id="btn-quality-low" class="seg-btn">Экономное</button>
+          </div>
+        </div>
+
+        <div class="setting-row">
+          <span class="setting-label-line">Экран и перемещение</span>
+          <div class="segmented-group">
+            <button type="button" id="btn-fullscreen" class="seg-btn">Полный экран</button>
+            <button type="button" id="btn-reset-spawn" class="seg-btn">В начальную точку</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-actions">
+        <button type="button" id="btn-close-settings-footer" class="btn-primary">Готово</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      'use strict';
+
+      /* =========================================================================
+       * 1. CONSTANTS, PALETTE & STATION ARCHITECTURAL DATA
+       * ========================================================================= */
+      const WORLD_W = 2400;
+      const WORLD_H = 1720;
+      const SPAWN_X = 1200;
+      const SPAWN_Y = 895;
+      const STORAGE_KEY = 'elephant_research_station_v2';
+
+      const PALETTE = {
+        sandGround: '#E8E4DA',
+        sandWarm: '#DFD9CC',
+        sandPath: '#D6CFC0',
+        stoneLight: '#F4F1EA',
+        stoneWarm: '#EAE5DA',
+        stoneTrim: '#D2CBB8',
+        outline: '#2C302E',
+        sage: '#2E5A44',
+        sageLight: '#497960',
+        sageMuted: '#8FA696',
+        terracotta: '#C86D51',
+        terracottaLight: '#DC876C',
+        olive: '#6B7D57',
+        grassPatchA: '#CDD4C0',
+        grassPatchB: '#BFC9B0',
+        grassBlade: '#557358',
+        wood: '#9A744C',
+        woodDark: '#6E5032',
+        water: '#86ADA7',
+        waterDeep: '#6B948E',
+        glass: 'rgba(182, 214, 208, 0.58)'
+      };
+
+      const BUILDINGS = [
+        {
+          id: 'elephantology',
+          title: 'ELEPHANTOLOGY',
+          displayTitle: 'Elephantology',
+          kicker: 'Научная библиотека и исследовательский центр',
+          theme: 'sage',
+          accent: PALETTE.sage,
+          description: '«Академическая база знаний о семействе Elephantidae. Биология, этология, ветеринария, содержание и научные исследования».',
+          siteUrl: 'https://drinkbeer228.github.io/elephantology/',
+          githubUrl: 'https://github.com/Drinkbeer228/elephantology',
+          x: 500,
+          y: 515,
+          w: 390,
+          h: 245,
+          doorX: 695,
+          doorY: 788,
+          interactRadius: 96
+        },
+        {
+          id: 'elephantorina',
+          title: 'ELEPHANTORINA',
+          displayTitle: 'Elephantorina',
+          kicker: 'Интерактивный образовательный центр',
+          theme: 'terracotta',
+          accent: PALETTE.terracotta,
+          description: '«Интерактивная образовательная платформа для изучения слонов. Обучение, викторины и интеллектуальные тренажёры».',
+          siteUrl: 'https://drinkbeer228.github.io/elephantorina/',
+          githubUrl: 'https://github.com/Drinkbeer228/elephantorina',
+          x: 1510,
+          y: 515,
+          w: 390,
+          h: 245,
+          doorX: 1705,
+          doorY: 788,
+          interactRadius: 96
+        }
+      ];
+
+      // Decorative Botanical Conservatory (Greenhouse) - strictly decorative
+      const GREENHOUSE = {
+        x: 1035,
+        y: 220,
+        w: 330,
+        h: 185
+      };
+
+      /* =========================================================================
+       * 2. DETERMINISTIC WORLD GEOMETRY & LANDSCAPE COMPOSER
+       * ========================================================================= */
+      function seededRandom(seed) {
+        let s = seed % 2147483647;
+        if (s <= 0) s += 2147483646;
+        return function () {
+          s = (s * 16807) % 2147483647;
+          return (s - 1) / 2147483646;
+        };
+      }
+
+      const rand = seededRandom(4202026);
+
+      // Soft organic lawn meadows
+      const MEADOW_PATCHES = [
+        { x: 640, y: 620, rx: 320, ry: 230, rot: -0.12, color: PALETTE.grassPatchA },
+        { x: 1760, y: 620, rx: 320, ry: 230, rot: 0.12, color: PALETTE.grassPatchA },
+        { x: 1200, y: 330, rx: 310, ry: 200, rot: 0.0, color: PALETTE.grassPatchB },
+        { x: 520, y: 1180, rx: 280, ry: 195, rot: 0.22, color: PALETTE.grassPatchB },
+        { x: 1880, y: 1180, rx: 280, ry: 195, rot: -0.2, color: PALETTE.grassPatchA },
+        { x: 1200, y: 1380, rx: 380, ry: 155, rot: 0.04, color: PALETTE.grassPatchA },
+        { x: 960, y: 680, rx: 145, ry: 105, rot: -0.25, color: PALETTE.grassPatchB },
+        { x: 1440, y: 680, rx: 145, ry: 105, rot: 0.25, color: PALETTE.grassPatchB }
+      ];
+
+      // Designed stone benches (placed outside main walking lanes)
+      const BENCHES = [
+        { x: 1015, y: 785, w: 66, h: 22, angle: 0, label: 'bench' },
+        { x: 1319, y: 785, w: 66, h: 22, angle: 0, label: 'bench' },
+        { x: 1015, y: 1070, w: 66, h: 22, angle: 0, label: 'bench' },
+        { x: 1319, y: 1070, w: 66, h: 22, angle: 0, label: 'bench' },
+        { x: 465, y: 845, w: 64, h: 22, angle: 0, label: 'bench' },
+        { x: 1871, y: 845, w: 64, h: 22, angle: 0, label: 'bench' }
+      ];
+
+      // Raised botanical flowerbeds / planters
+      const PLANTERS = [
+        { x: 420, y: 775, w: 110, h: 42, accent: PALETTE.sage },
+        { x: 860, y: 775, w: 110, h: 42, accent: PALETTE.sage },
+        { x: 1430, y: 775, w: 110, h: 42, accent: PALETTE.terracotta },
+        { x: 1870, y: 775, w: 110, h: 42, accent: PALETTE.terracotta },
+        { x: 970, y: 435, w: 95, h: 38, accent: PALETTE.olive },
+        { x: 1335, y: 435, w: 95, h: 38, accent: PALETTE.olive }
+      ];
+
+      // Directional signposts
+      const SIGNPOSTS = [
+        { x: 1085, y: 875, text: '← ELEPHANTOLOGY' },
+        { x: 1315, y: 875, text: 'ELEPHANTORINA →' },
+        { x: 1140, y: 760, text: '↑ ОРАНЖЕРЕЯ' },
+        { x: 1260, y: 1065, text: '↓ ЮЖНЫЕ ВОРОТА' }
+      ];
+
+      // Architectural pathway bollard lanterns
+      const LANTERNS = [
+        { x: 635, y: 805 }, { x: 755, y: 805 },
+        { x: 1645, y: 805 }, { x: 1765, y: 805 },
+        { x: 1095, y: 810 }, { x: 1305, y: 810 },
+        { x: 1095, y: 1045 }, { x: 1305, y: 1045 },
+        { x: 920, y: 870 }, { x: 1480, y: 870 },
+        { x: 1140, y: 445 }, { x: 1260, y: 445 },
+        { x: 1135, y: 1290 }, { x: 1265, y: 1290 }
+      ];
+
+      // Natural boulders & rock clusters
+      const ROCKS = [
+        { x: 300, y: 480, r: 28, variant: 0 },
+        { x: 335, y: 505, r: 18, variant: 1 },
+        { x: 895, y: 390, r: 24, variant: 2 },
+        { x: 1505, y: 390, r: 25, variant: 0 },
+        { x: 2080, y: 495, r: 30, variant: 1 },
+        { x: 2050, y: 525, r: 19, variant: 2 },
+        { x: 740, y: 1170, r: 32, variant: 0 },
+        { x: 780, y: 1190, r: 20, variant: 1 },
+        { x: 1650, y: 1175, r: 30, variant: 2 },
+        { x: 1615, y: 1195, r: 18, variant: 0 },
+        { x: 960, y: 270, r: 24, variant: 1 },
+        { x: 1440, y: 270, r: 24, variant: 2 }
+      ];
+
+      // Curated specimen trees & shrubs
+      const TREES = [
+        // West Wing grove
+        { x: 260, y: 340, r: 52, trunkR: 14, kind: 'acacia', phase: 0.2 },
+        { x: 240, y: 620, r: 46, trunkR: 13, kind: 'olive', phase: 1.1 },
+        { x: 320, y: 840, r: 48, trunkR: 13, kind: 'sage', phase: 2.0 },
+        { x: 910, y: 310, r: 44, trunkR: 12, kind: 'olive', phase: 0.7 },
+        { x: 915, y: 580, r: 38, trunkR: 11, kind: 'sage', phase: 1.9 },
+        // East Wing grove
+        { x: 2140, y: 340, r: 52, trunkR: 14, kind: 'acacia', phase: 1.4 },
+        { x: 2160, y: 620, r: 46, trunkR: 13, kind: 'olive', phase: 2.6 },
+        { x: 2080, y: 840, r: 48, trunkR: 13, kind: 'sage', phase: 0.4 },
+        { x: 1490, y: 310, r: 44, trunkR: 12, kind: 'olive', phase: 2.2 },
+        { x: 1485, y: 580, r: 38, trunkR: 11, kind: 'sage', phase: 0.9 },
+        // North Conservatory framing
+        { x: 890, y: 190, r: 50, trunkR: 14, kind: 'acacia', phase: 1.5 },
+        { x: 1510, y: 190, r: 50, trunkR: 14, kind: 'acacia', phase: 2.8 },
+        { x: 1200, y: 145, r: 44, trunkR: 12, kind: 'sage', phase: 0.3 },
+        // Plaza & South Parkland
+        { x: 830, y: 1030, r: 48, trunkR: 13, kind: 'acacia', phase: 1.0 },
+        { x: 1570, y: 1030, r: 48, trunkR: 13, kind: 'acacia', phase: 2.4 },
+        { x: 540, y: 1120, r: 54, trunkR: 15, kind: 'olive', phase: 0.6 },
+        { x: 1860, y: 1120, r: 54, trunkR: 15, kind: 'olive', phase: 1.7 },
+        { x: 640, y: 1360, r: 46, trunkR: 13, kind: 'sage', phase: 2.9 },
+        { x: 1760, y: 1360, r: 46, trunkR: 13, kind: 'sage', phase: 1.2 },
+        { x: 980, y: 1390, r: 42, trunkR: 12, kind: 'olive', phase: 0.8 },
+        { x: 1420, y: 1390, r: 42, trunkR: 12, kind: 'olive', phase: 2.1 },
+        { x: 350, y: 1290, r: 50, trunkR: 14, kind: 'acacia', phase: 1.8 },
+        { x: 2050, y: 1290, r: 50, trunkR: 14, kind: 'acacia', phase: 0.5 }
+      ];
+
+      // Decorative low shrubs (non-blocking or small radius)
+      const SHRUBS = [
+        { x: 380, y: 340, r: 20, color: PALETTE.sage },
+        { x: 850, y: 345, r: 18, color: PALETTE.olive },
+        { x: 1550, y: 345, r: 18, color: PALETTE.olive },
+        { x: 2020, y: 340, r: 20, color: PALETTE.sage },
+        { x: 1005, y: 240, r: 19, color: PALETTE.sageLight },
+        { x: 1395, y: 240, r: 19, color: PALETTE.sageLight },
+        { x: 960, y: 840, r: 17, color: PALETTE.olive },
+        { x: 1440, y: 840, r: 17, color: PALETTE.olive },
+        { x: 930, y: 1140, r: 19, color: PALETTE.sage },
+        { x: 1470, y: 1140, r: 19, color: PALETTE.sage },
+        { x: 520, y: 920, r: 21, color: PALETTE.olive },
+        { x: 1880, y: 920, r: 21, color: PALETTE.olive }
+      ];
+
+      // Pre-generate deterministic grass tufts & pebbles avoiding paved paths and buildings
+      const GRASS_TUFTS = [];
+      const PEBBLES = [];
+
+      function isPointOnPathOrPlaza(px, py) {
+        // Central plaza circle
+        if (Math.hypot(px - 1200, py - 920) < 195) return true;
+        // West forecourt
+        if (px > 560 && px < 830 && py > 750 && py < 910) return true;
+        // East forecourt
+        if (px > 1570 && px < 1840 && py > 750 && py < 910) return true;
+        // North conservatory promenade
+        if (px > 1130 && px < 1270 && py > 400 && py < 920) return true;
+        // South arrival promenade
+        if (px > 1130 && px < 1270 && py > 920 && py < 1490) return true;
+        // West-to-Plaza curving avenue
+        if (px > 660 && px < 1210 && py > 770 && py < 980) {
+          const t = (px - 695) / (1200 - 695);
+          const curveY = 815 + t * 105 + Math.sin(t * Math.PI) * 35;
+          if (Math.abs(py - curveY) < 58) return true;
+        }
+        // East-to-Plaza curving avenue
+        if (px > 1190 && px < 1740 && py > 770 && py < 980) {
+          const t = (1705 - px) / (1705 - 1200);
+          const curveY = 815 + t * 105 + Math.sin(t * Math.PI) * 35;
+          if (Math.abs(py - curveY) < 58) return true;
+        }
+        return false;
+      }
+
+      function isPointInsideStructure(px, py) {
+        for (const b of BUILDINGS) {
+          if (px > b.x - 30 && px < b.x + b.w + 30 && py > b.y - 30 && py < b.y + b.h + 45) return true;
+        }
+        if (
+          px > GREENHOUSE.x - 25 &&
+          px < GREENHOUSE.x + GREENHOUSE.w + 25 &&
+          py > GREENHOUSE.y - 25 &&
+          py < GREENHOUSE.y + GREENHOUSE.h + 35
+        ) {
+          return true;
+        }
+        return false;
+      }
+
+      for (let i = 0; i < 360; i++) {
+        const gx = 120 + rand() * (WORLD_W - 240);
+        const gy = 120 + rand() * (WORLD_H - 240);
+        if (!isPointInsideStructure(gx, gy) && !isPointOnPathOrPlaza(gx, gy)) {
+          GRASS_TUFTS.push({
+            x: gx,
+            y: gy,
+            blades: 3 + Math.floor(rand() * 3),
+            size: 6 + rand() * 6,
+            phase: rand() * Math.PI * 2,
+            hueOffset: rand() > 0.5 ? '#557358' : '#6A8361'
+          });
+        }
+      }
+
+      for (let i = 0; i < 220; i++) {
+        const px = 100 + rand() * (WORLD_W - 200);
+        const py = 100 + rand() * (WORLD_H - 200);
+        if (!isPointInsideStructure(px, py)) {
+          PEBBLES.push({
+            x: px,
+            y: py,
+            r: 1.8 + rand() * 3.2,
+            color: rand() > 0.5 ? '#CFC8B8' : '#BDB5A4'
+          });
+        }
+      }
+
+      /* =========================================================================
+       * 3. COLLISION SYSTEM
+       * ========================================================================= */
+      class CollisionSystem {
+        constructor() {
+          this.colliders = [];
+          this.buildStaticColliders();
+        }
+
+        buildStaticColliders() {
+          // Two main project buildings
+          for (const b of BUILDINGS) {
+            this.colliders.push({
+              type: 'rect',
+              x: b.x,
+              y: b.y,
+              w: b.w,
+              h: b.h
+            });
+          }
+
+          // Decorative Greenhouse
+          this.colliders.push({
+            type: 'rect',
+            x: GREENHOUSE.x,
+            y: GREENHOUSE.y,
+            w: GREENHOUSE.w,
+            h: GREENHOUSE.h
+          });
+
+          // Raised Stone Planters
+          for (const p of PLANTERS) {
+            this.colliders.push({
+              type: 'rect',
+              x: p.x,
+              y: p.y,
+              w: p.w,
+              h: p.h
+            });
+          }
+
+          // Benches
+          for (const bench of BENCHES) {
+            this.colliders.push({
+              type: 'rect',
+              x: bench.x,
+              y: bench.y,
+              w: bench.w,
+              h: bench.h
+            });
+          }
+
+          // Trees (trunk collision so player can walk under outer canopy edge naturally)
+          for (const t of TREES) {
+            this.colliders.push({
+              type: 'circle',
+              x: t.x,
+              y: t.y,
+              r: t.trunkR + 6
+            });
+          }
+
+          // Rocks
+          for (const r of ROCKS) {
+            this.colliders.push({
+              type: 'circle',
+              x: r.x,
+              y: r.y,
+              r: r.r * 0.85
+            });
+          }
+        }
+
+        resolve(x, y, radius) {
+          let curX = x;
+          let curY = y;
+          let hitAny = false;
+
+          for (let pass = 0; pass < 2; pass++) {
+            for (let i = 0; i < this.colliders.length; i++) {
+              const c = this.colliders[i];
+              if (c.type === 'rect') {
+                const closestX = Math.max(c.x, Math.min(curX, c.x + c.w));
+                const closestY = Math.max(c.y, Math.min(curY, c.y + c.h));
+                const dx = curX - closestX;
+                const dy = curY - closestY;
+                const distSq = dx * dx + dy * dy;
+                if (distSq < radius * radius) {
+                  hitAny = true;
+                  const dist = Math.sqrt(distSq);
+                  if (dist > 0.0001) {
+                    const overlap = radius - dist;
+                    curX += (dx / dist) * overlap;
+                    curY += (dy / dist) * overlap;
+                  } else {
+                    const leftPen = curX - c.x;
+                    const rightPen = c.x + c.w - curX;
+                    const topPen = curY - c.y;
+                    const bottomPen = c.y + c.h - curY;
+                    const minPen = Math.min(leftPen, rightPen, topPen, bottomPen);
+                    if (minPen === leftPen) curX = c.x - radius;
+                    else if (minPen === rightPen) curX = c.x + c.w + radius;
+                    else if (minPen === topPen) curY = c.y - radius;
+                    else curY = c.y + c.h + radius;
+                  }
+                }
+              } else {
+                const dx = curX - c.x;
+                const dy = curY - c.y;
+                const minDist = radius + c.r;
+                const distSq = dx * dx + dy * dy;
+                if (distSq < minDist * minDist) {
+                  hitAny = true;
+                  const dist = Math.sqrt(distSq);
+                  if (dist > 0.0001) {
+                    const overlap = minDist - dist;
+                    curX += (dx / dist) * overlap;
+                    curY += (dy / dist) * overlap;
+                  } else {
+                    curX = c.x + minDist;
+                  }
+                }
+              }
+            }
+          }
+
+          const margin = 56;
+          curX = Math.max(margin + radius, Math.min(WORLD_W - margin - radius, curX));
+          curY = Math.max(margin + radius, Math.min(WORLD_H - margin - radius, curY));
+          return { x: curX, y: curY, hitAny };
+        }
+      }
+
+      /* =========================================================================
+       * 4. STORAGE MANAGER (localStorage)
+       * ========================================================================= */
+      class StorageManager {
+        constructor() {
+          this.state = {
+            muted: false,
+            ambientVolume: 0.7,
+            sfxVolume: 0.8,
+            graphicsQuality: 'high',
+            playerX: SPAWN_X,
+            playerY: SPAWN_Y
+          };
+          this.load();
+        }
+
+        load() {
+          try {
+            const raw = window.localStorage.getItem(STORAGE_KEY);
+            if (!raw) return;
+            const parsed = JSON.parse(raw);
+            if (typeof parsed.muted === 'boolean') this.state.muted = parsed.muted;
+            if (typeof parsed.ambientVolume === 'number') {
+              this.state.ambientVolume = Math.max(0, Math.min(1, parsed.ambientVolume));
+            }
+            if (typeof parsed.sfxVolume === 'number') {
+              this.state.sfxVolume = Math.max(0, Math.min(1, parsed.sfxVolume));
+            }
+            if (parsed.graphicsQuality === 'high' || parsed.graphicsQuality === 'low') {
+              this.state.graphicsQuality = parsed.graphicsQuality;
+            }
+            if (
+              typeof parsed.playerX === 'number' &&
+              typeof parsed.playerY === 'number' &&
+              parsed.playerX > 100 &&
+              parsed.playerX < WORLD_W - 100 &&
+              parsed.playerY > 100 &&
+              parsed.playerY < WORLD_H - 100
+            ) {
+              this.state.playerX = parsed.playerX;
+              this.state.playerY = parsed.playerY;
+            }
+          } catch (_e) {
+            // Ignore storage restriction errors
+          }
+        }
+
+        save() {
+          try {
+            window.localStorage.setItem(STORAGE_KEY, JSON.stringify(this.state));
+          } catch (_e) {
+            // Ignore storage errors
+          }
+        }
+      }
+
+      /* =========================================================================
+       * 5. WEB AUDIO API PROCEDURAL SOUND SYSTEM
+       * ========================================================================= */
+      class AudioManager {
+        constructor(storage) {
+          this.storage = storage;
+          this.ctx = null;
+          this.ambientGain = null;
+          this.sfxGain = null;
+          this.windNode = null;
+          this.birdTimer = 3.5;
+          this.initialized = false;
+        }
+
+        initOnGesture() {
+          if (this.initialized) {
+            if (this.ctx && this.ctx.state === 'suspended' && !this.storage.state.muted) {
+              this.ctx.resume().catch(() => {});
+            }
+            return;
+          }
+          try {
+            const AudioCtx = window.AudioContext || window.webkitAudioContext;
+            if (!AudioCtx) return;
+            this.ctx = new AudioCtx();
+            this.ambientGain = this.ctx.createGain();
+            this.sfxGain = this.ctx.createGain();
+            this.ambientGain.connect(this.ctx.destination);
+            this.sfxGain.connect(this.ctx.destination);
+
+            this.syncVolumes();
+            this.startGentleWindAmbience();
+            this.initialized = true;
+          } catch (_e) {
+            // AudioContext blocked or unsupported
+          }
+        }
+
+        syncVolumes() {
+          if (!this.ctx || !this.ambientGain || !this.sfxGain) return;
+          const now = this.ctx.currentTime;
+          const muted = this.storage.state.muted;
+          const amb = muted ? 0 : this.storage.state.ambientVolume * 0.18;
+          const sfx = muted ? 0 : this.storage.state.sfxVolume * 0.45;
+          this.ambientGain.gain.setTargetAtTime(amb, now, 0.08);
+          this.sfxGain.gain.setTargetAtTime(sfx, now, 0.05);
+        }
+
+        startGentleWindAmbience() {
+          if (!this.ctx) return;
+          // Create a 3-second looping pink-ish noise buffer filtered through a warm lowpass
+          const sampleRate = this.ctx.sampleRate;
+          const length = sampleRate * 3;
+          const buffer = this.ctx.createBuffer(1, length, sampleRate);
+          const data = buffer.getChannelData(0);
+          let b0 = 0, b1 = 0, b2 = 0;
+          for (let i = 0; i < length; i++) {
+            const white = Math.random() * 2 - 1;
+            b0 = 0.997 * b0 + white * 0.029;
+            b1 = 0.985 * b1 + white * 0.032;
+            b2 = 0.950 * b2 + white * 0.048;
+            data[i] = (b0 + b1 + b2) * 0.18;
+          }
+
+          const source = this.ctx.createBufferSource();
+          source.buffer = buffer;
+          source.loop = true;
+
+          const filter = this.ctx.createBiquadFilter();
+          filter.type = 'bandpass';
+          filter.frequency.value = 340;
+          filter.Q.value = 0.7;
+
+          source.connect(filter);
+          filter.connect(this.ambientGain);
+          source.start();
+          this.windNode = source;
+        }
+
+        playFootstep(onPavedPath) {
+          if (!this.initialized || !this.ctx || this.storage.state.muted) return;
+          if (this.ctx.state !== 'running') return;
+
+          const now = this.ctx.currentTime;
+          if (onPavedPath) {
+            // Soft stone/gravel tap
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            osc.type = 'triangle';
+            const baseFreq = 145 + (Math.random() * 26 - 13);
+            osc.frequency.setValueAtTime(baseFreq, now);
+            osc.frequency.exponentialRampToValueAtTime(62, now + 0.055);
+
+            gain.gain.setValueAtTime(0.001, now);
+            gain.gain.linearRampToValueAtTime(0.14, now + 0.008);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.06);
+
+            osc.connect(gain);
+            gain.connect(this.sfxGain);
+            osc.start(now);
+            osc.stop(now + 0.065);
+          } else {
+            // Soft grass/botanical rustle
+            const bufferSize = Math.floor(this.ctx.sampleRate * 0.065);
+            const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+            const channel = buffer.getChannelData(0);
+            for (let i = 0; i < bufferSize; i++) {
+              const env = Math.sin((i / bufferSize) * Math.PI);
+              channel[i] = (Math.random() * 2 - 1) * env * 0.28;
+            }
+            const noise = this.ctx.createBufferSource();
+            noise.buffer = buffer;
+
+            const filter = this.ctx.createBiquadFilter();
+            filter.type = 'bandpass';
+            filter.frequency.value = 950 + (Math.random() * 220 - 110);
+            filter.Q.value = 1.4;
+
+            const gain = this.ctx.createGain();
+            gain.gain.setValueAtTime(0.16, now);
+            gain.gain.exponentialRampToValueAtTime(0.005, now + 0.065);
+
+            noise.connect(filter);
+            filter.connect(gain);
+            gain.connect(this.sfxGain);
+            noise.start(now);
+          }
+        }
+
+        playInteractChime(isOpen = true) {
+          if (!this.initialized || !this.ctx || this.storage.state.muted) return;
+          if (this.ctx.state !== 'running') return;
+
+          const now = this.ctx.currentTime;
+          const notes = isOpen ? [392.0, 493.88, 587.33] : [523.25, 392.0];
+          notes.forEach((freq, idx) => {
+            const start = now + idx * 0.055;
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(freq, start);
+
+            gain.gain.setValueAtTime(0.001, start);
+            gain.gain.linearRampToValueAtTime(0.16, start + 0.015);
+            gain.gain.exponentialRampToValueAtTime(0.0008, start + 0.26);
+
+            osc.connect(gain);
+            gain.connect(this.sfxGain);
+            osc.start(start);
+            osc.stop(start + 0.28);
+          });
+        }
+
+        playBirdChirp() {
+          if (!this.initialized || !this.ctx || this.storage.state.muted) return;
+          if (this.ctx.state !== 'running') return;
+
+          const now = this.ctx.currentTime;
+          const base = 1650 + Math.random() * 550;
+          const syllables = 2 + Math.floor(Math.random() * 2);
+
+          for (let i = 0; i < syllables; i++) {
+            const t = now + i * 0.13;
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(base, t);
+            osc.frequency.exponentialRampToValueAtTime(base * 1.28, t + 0.05);
+            osc.frequency.exponentialRampToValueAtTime(base * 0.94, t + 0.10);
+
+            gain.gain.setValueAtTime(0.001, t);
+            gain.gain.linearRampToValueAtTime(0.08, t + 0.02);
+            gain.gain.exponentialRampToValueAtTime(0.0008, t + 0.105);
+
+            osc.connect(gain);
+            gain.connect(this.ambientGain);
+            osc.start(t);
+            osc.stop(t + 0.11);
+          }
+        }
+
+        update(dt, isTabHidden) {
+          if (!this.initialized || !this.ctx || isTabHidden || this.storage.state.muted) return;
+          this.birdTimer -= dt;
+          if (this.birdTimer <= 0) {
+            this.playBirdChirp();
+            this.birdTimer = 5.5 + Math.random() * 7.5;
+          }
+        }
+      }
+
+      /* =========================================================================
+       * 6. INPUT MANAGER (Keyboard, Mouse/Touch Point-to-Move, Virtual Joystick)
+       * ========================================================================= */
+      class InputManager {
+        constructor(canvas, joystickZone, joystickKnob, onInteractKey, onEscapeKey, onFirstGesture) {
+          this.canvas = canvas;
+          this.joystickZone = joystickZone;
+          this.joystickKnob = joystickKnob;
+          this.onInteractKey = onInteractKey;
+          this.onEscapeKey = onEscapeKey;
+          this.onFirstGesture = onFirstGesture;
+
+          this.keys = new Set();
+          this.joyActive = false;
+          this.joyPointerId = null;
+          this.joyCenter = { x: 0, y: 0 };
+          this.joyVec = { x: 0, y: 0 };
+          this.maxJoyRadius = 36;
+
+          this.pointerTarget = null; // { x, y, buildingId }
+          this.clickRipples = [];    // visual ripples on ground click
+          this.blockedByModal = false;
+
+          this.bindEvents();
+        }
+
+        bindEvents() {
+          window.addEventListener('keydown', (e) => {
+            this.onFirstGesture();
+            if (e.key === 'Escape') {
+              this.onEscapeKey();
+              return;
+            }
+            if (this.blockedByModal) return;
+
+            const code = e.code;
+            const key = e.key.toLowerCase();
+
+            if (code === 'KeyE' || key === 'e' || key === 'у' || code === 'Enter') {
+              e.preventDefault();
+              this.onInteractKey();
+              return;
+            }
+
+            if (
+              code === 'KeyW' || code === 'KeyA' || code === 'KeyS' || code === 'KeyD' ||
+              code === 'ArrowUp' || code === 'ArrowDown' || code === 'ArrowLeft' || code === 'ArrowRight'
+            ) {
+              this.keys.add(code);
+              this.pointerTarget = null; // manual keyboard overrides point-and-click walk
+            }
+          });
+
+          window.addEventListener('keyup', (e) => {
+            this.keys.delete(e.code);
+          });
+
+          window.addEventListener('blur', () => {
+            this.clearAllInputs();
+          });
+
+          document.addEventListener('visibilitychange', () => {
+            if (document.hidden) this.clearAllInputs();
+          });
+
+          // Virtual Joystick Pointer Events
+          this.joystickZone.addEventListener('pointerdown', (e) => {
+            e.stopPropagation();
+            e.preventDefault();
+            this.onFirstGesture();
+            if (this.blockedByModal) return;
+
+            const rect = this.joystickZone.getBoundingClientRect();
+            this.joyActive = true;
+            this.joyPointerId = e.pointerId;
+            this.joyCenter = {
+              x: rect.left + rect.width / 2,
+              y: rect.top + rect.height / 2
+            };
+            this.joystickZone.classList.add('active');
+            this.joystickZone.setPointerCapture(e.pointerId);
+            this.updateJoystickVector(e.clientX, e.clientY);
+            this.pointerTarget = null;
+          });
+
+          this.joystickZone.addEventListener('pointermove', (e) => {
+            if (!this.joyActive || e.pointerId !== this.joyPointerId) return;
+            e.stopPropagation();
+            e.preventDefault();
+            this.updateJoystickVector(e.clientX, e.clientY);
+          });
+
+          const endJoy = (e) => {
+            if (!this.joyActive || (e.pointerId !== undefined && e.pointerId !== this.joyPointerId)) return;
+            this.joyActive = false;
+            this.joyPointerId = null;
+            this.joyVec.x = 0;
+            this.joyVec.y = 0;
+            this.joystickZone.classList.remove('active');
+            this.joystickKnob.style.transform = 'translate3d(0px, 0px, 0px)';
+          };
+
+          this.joystickZone.addEventListener('pointerup', endJoy);
+          this.joystickZone.addEventListener('pointercancel', endJoy);
+        }
+
+        updateJoystickVector(clientX, clientY) {
+          const dx = clientX - this.joyCenter.x;
+          const dy = clientY - this.joyCenter.y;
+          const dist = Math.hypot(dx, dy);
+          const clamped = Math.min(dist, this.maxJoyRadius);
+          const angle = Math.atan2(dy, dx);
+          const kx = Math.cos(angle) * clamped;
+          const ky = Math.sin(angle) * clamped;
+
+          this.joystickKnob.style.transform = `translate3d(${kx.toFixed(1)}px, ${ky.toFixed(1)}px, 0px)`;
+          if (dist > 4) {
+            this.joyVec.x = kx / this.maxJoyRadius;
+            this.joyVec.y = ky / this.maxJoyRadius;
+          } else {
+            this.joyVec.x = 0;
+            this.joyVec.y = 0;
+          }
+        }
+
+        clearAllInputs() {
+          this.keys.clear();
+          this.joyActive = false;
+          this.joyVec.x = 0;
+          this.joyVec.y = 0;
+          if (this.joystickZone) this.joystickZone.classList.remove('active');
+          if (this.joystickKnob) this.joystickKnob.style.transform = 'translate3d(0px, 0px, 0px)';
+        }
+
+        getMovementVector() {
+          if (this.blockedByModal) return { x: 0, y: 0, active: false };
+
+          let vx = 0;
+          let vy = 0;
+
+          if (this.keys.has('KeyW') || this.keys.has('ArrowUp')) vy -= 1;
+          if (this.keys.has('KeyS') || this.keys.has('ArrowDown')) vy += 1;
+          if (this.keys.has('KeyA') || this.keys.has('ArrowLeft')) vx -= 1;
+          if (this.keys.has('KeyD') || this.keys.has('ArrowRight')) vx += 1;
+
+          if (vx !== 0 || vy !== 0) {
+            const len = Math.hypot(vx, vy);
+            return { x: vx / len, y: vy / len, active: true };
+          }
+
+          if (this.joyActive && (Math.abs(this.joyVec.x) > 0.05 || Math.abs(this.joyVec.y) > 0.05)) {
+            return { x: this.joyVec.x, y: this.joyVec.y, active: true };
+          }
+
+          return { x: 0, y: 0, active: false };
+        }
+      }
+
+      /* =========================================================================
+       * 7. CAMERA SYSTEM
+       * ========================================================================= */
+      class Camera {
+        constructor(x, y) {
+          this.x = x;
+          this.y = y;
+          this.viewW = window.innerWidth;
+          this.viewH = window.innerHeight;
+        }
+
+        resize(w, h) {
+          this.viewW = w;
+          this.viewH = h;
+        }
+
+        update(targetX, targetY, dt) {
+          const smooth = 1 - Math.exp(-7.5 * dt);
+          this.x += (targetX - this.x) * smooth;
+          this.y += (targetY - this.y) * smooth;
+
+          const halfW = this.viewW / 2;
+          const halfH = this.viewH / 2;
+
+          if (WORLD_W > this.viewW) {
+            this.x = Math.max(halfW, Math.min(WORLD_W - halfW, this.x));
+          } else {
+            this.x = WORLD_W / 2;
+          }
+
+          if (WORLD_H > this.viewH) {
+            this.y = Math.max(halfH, Math.min(WORLD_H - halfH, this.y));
+          } else {
+            this.y = WORLD_H / 2;
+          }
+        }
+
+        screenToWorld(clientX, clientY, canvasRect) {
+          const sx = clientX - canvasRect.left;
+          const sy = clientY - canvasRect.top;
+          return {
+            x: this.x - this.viewW / 2 + sx,
+            y: this.y - this.viewH / 2 + sy
+          };
+        }
+      }
+
+      /* =========================================================================
+       * 8. PLAYER CHARACTER
+       * ========================================================================= */
+      class Player {
+        constructor(x, y) {
+          this.x = x;
+          this.y = y;
+          this.vx = 0;
+          this.vy = 0;
+          this.radius = 17;
+          this.maxSpeed = 225;
+          this.accel = 1350;
+          this.friction = 10.5;
+          this.angle = -Math.PI / 2; // facing north toward the station plaza initially
+          this.walkCycle = 0;
+          this.stepDistance = 0;
+          this.breathPhase = 0;
+        }
+
+        update(dt, input, collisionSystem, audio, onArriveBuilding) {
+          this.breathPhase += dt * 2.6;
+          const move = input.getMovementVector();
+          let desiredVx = 0;
+          let desiredVy = 0;
+
+          if (move.active) {
+            desiredVx = move.x * this.maxSpeed;
+            desiredVy = move.y * this.maxSpeed;
+          } else if (input.pointerTarget && !input.blockedByModal) {
+            const activePt =
+              input.pointerTarget.waypoints && input.pointerTarget.waypoints.length > 0
+                ? input.pointerTarget.waypoints[0]
+                : input.pointerTarget;
+            const dx = activePt.x - this.x;
+            const dy = activePt.y - this.y;
+            const dist = Math.hypot(dx, dy);
+
+            if (dist <= 18) {
+              if (input.pointerTarget.waypoints && input.pointerTarget.waypoints.length > 0) {
+                input.pointerTarget.waypoints.shift();
+              } else {
+                const targetBuilding = input.pointerTarget.building;
+                input.pointerTarget = null;
+                if (targetBuilding) {
+                  onArriveBuilding(targetBuilding);
+                }
+              }
+            } else {
+              const isFinalPoint = !input.pointerTarget.waypoints || input.pointerTarget.waypoints.length === 0;
+              const slowRadius = isFinalPoint ? 52 : 18;
+              const speedFactor = Math.min(1, dist / slowRadius);
+              const speed = Math.max(65, this.maxSpeed * speedFactor);
+              desiredVx = (dx / dist) * speed;
+              desiredVy = (dy / dist) * speed;
+            }
+          }
+
+          // Smooth acceleration and realistic inertia deceleration
+          if (Math.hypot(desiredVx, desiredVy) > 1) {
+            const ax = (desiredVx - this.vx) * Math.min(1, 12 * dt);
+            const ay = (desiredVy - this.vy) * Math.min(1, 12 * dt);
+            this.vx += ax;
+            this.vy += ay;
+          } else {
+            const damping = Math.exp(-this.friction * dt);
+            this.vx *= damping;
+            this.vy *= damping;
+            if (Math.hypot(this.vx, this.vy) < 2) {
+              this.vx = 0;
+              this.vy = 0;
+            }
+          }
+
+          const prevX = this.x;
+          const prevY = this.y;
+          const nextX = this.x + this.vx * dt;
+          const nextY = this.y + this.vy * dt;
+
+          const resolved = collisionSystem.resolve(nextX, nextY, this.radius);
+          this.x = resolved.x;
+          this.y = resolved.y;
+
+          // If blocked by obstacle while point-and-click walking, steer tangentially around obstacle
+          let actualDx = this.x - prevX;
+          let actualDy = this.y - prevY;
+          let actualDist = Math.hypot(actualDx, actualDy);
+          let currentSpeed = actualDist / Math.max(dt, 0.0001);
+
+          if (resolved.hitAny && input.pointerTarget) {
+            const targetDist = Math.hypot(input.pointerTarget.x - this.x, input.pointerTarget.y - this.y);
+            if (targetDist < 72 && input.pointerTarget.building) {
+              const b = input.pointerTarget.building;
+              input.pointerTarget = null;
+              onArriveBuilding(b);
+            } else if (currentSpeed < 45) {
+              const goalAngle = Math.atan2(desiredVy, desiredVx);
+              const slideAngle = goalAngle + Math.PI * 0.48;
+              const slideRes = collisionSystem.resolve(
+                prevX + Math.cos(slideAngle) * this.maxSpeed * 0.75 * dt,
+                prevY + Math.sin(slideAngle) * this.maxSpeed * 0.75 * dt,
+                this.radius
+              );
+              this.x = slideRes.x;
+              this.y = slideRes.y;
+              actualDx = this.x - prevX;
+              actualDy = this.y - prevY;
+              actualDist = Math.hypot(actualDx, actualDy);
+              currentSpeed = actualDist / Math.max(dt, 0.0001);
+            }
+          }
+
+          // Smooth rotation toward movement vector
+          if (currentSpeed > 12) {
+            const targetAngle = Math.atan2(actualDy, actualDx);
+            let diff = targetAngle - this.angle;
+            while (diff > Math.PI) diff -= Math.PI * 2;
+            while (diff < -Math.PI) diff += Math.PI * 2;
+            this.angle += diff * Math.min(1, 14 * dt);
+
+            // Distance-synced gait so feet never slide on the ground
+            this.walkCycle += actualDist * 0.14;
+            this.stepDistance += actualDist;
+            if (this.stepDistance >= 46) {
+              this.stepDistance = 0;
+              audio.playFootstep(isPointOnPathOrPlaza(this.x, this.y));
+            }
+          } else {
+            // Settle walk cycle smoothly toward neutral stance
+            this.walkCycle *= Math.exp(-8 * dt);
+          }
+        }
+
+        draw(ctx) {
+          ctx.save();
+          ctx.translate(this.x, this.y);
+
+          // Ground soft shadow
+          ctx.fillStyle = 'rgba(44, 48, 46, 0.22)';
+          ctx.beginPath();
+          ctx.ellipse(3, 7, 17, 13, 0, 0, Math.PI * 2);
+          ctx.fill();
+
+          ctx.rotate(this.angle);
+
+          const stride = Math.sin(this.walkCycle);
+          const armSwing = stride * 5.5;
+          const footSwing = stride * 6.5;
+          const breath = Math.sin(this.breathPhase) * 0.5;
+
+          // Animated feet (dark boots)
+          ctx.fillStyle = PALETTE.outline;
+          ctx.beginPath();
+          ctx.ellipse(footSwing, -7, 5.5, 3.8, 0, 0, Math.PI * 2);
+          ctx.ellipse(-footSwing, 7, 5.5, 3.8, 0, 0, Math.PI * 2);
+          ctx.fill();
+
+          // Explorer backpack (sage green canvas pack on back)
+          ctx.fillStyle = PALETTE.sage;
+          ctx.strokeStyle = PALETTE.outline;
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.roundRect(-14, -9.5, 9, 19, 3.5);
+          ctx.fill();
+          ctx.stroke();
+
+          // Leather strap detail on pack
+          ctx.fillStyle = PALETTE.wood;
+          ctx.fillRect(-11, -6, 3, 12);
+
+          // Left & Right shoulders / arms (linen field coat)
+          ctx.fillStyle = PALETTE.stoneLight;
+          ctx.strokeStyle = PALETTE.outline;
+          ctx.lineWidth = 2;
+
+          // Left arm
+          ctx.beginPath();
+          ctx.ellipse(-armSwing * 0.8, -11.5, 5.5, 4.2, 0.15, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.stroke();
+
+          // Right arm
+          ctx.beginPath();
+          ctx.ellipse(armSwing * 0.8, 11.5, 5.5, 4.2, -0.15, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.stroke();
+
+          // Torso (linen expedition jacket with terracotta collar scarf)
+          ctx.fillStyle = PALETTE.stoneLight;
+          ctx.beginPath();
+          ctx.ellipse(0, 0, 10.5 + breath, 12.5 + breath, 0, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.stroke();
+
+          // Terracotta field scarf / collar accent
+          ctx.fillStyle = PALETTE.terracotta;
+          ctx.beginPath();
+          ctx.arc(2.5, 0, 7.5, -Math.PI * 0.65, Math.PI * 0.65);
+          ctx.fill();
+
+          // Head
+          ctx.fillStyle = '#EED4BE';
+          ctx.beginPath();
+          ctx.arc(2, 0, 8.2, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.stroke();
+
+          // Stylized dark hair / researcher cap crown
+          ctx.fillStyle = PALETTE.outline;
+          ctx.beginPath();
+          ctx.arc(0.5, 0, 8.3, Math.PI * 0.38, -Math.PI * 0.38, false);
+          ctx.closePath();
+          ctx.fill();
+
+          ctx.restore();
+        }
+      }
+
+      /* =========================================================================
+       * 9. LITTLE BLACK PUPPY COMPANION (With White Chest Spot)
+       * ========================================================================= */
+      class DogCompanion {
+        constructor(x, y) {
+          this.x = x;
+          this.y = y;
+          this.vx = 0;
+          this.vy = 0;
+          this.radius = 11;
+          this.angle = -Math.PI / 2;
+          this.headAngleOffset = 0;
+          this.targetHeadOffset = 0;
+
+          this.state = 'idle'; // 'follow' | 'idle' | 'sit' | 'look_around'
+          this.stateTimer = 0;
+          this.runCycle = 0;
+          this.tailPhase = 0;
+          this.followSideAngle = 2.45; // Follows slightly behind and to one side of the player
+        }
+
+        update(dt, player, collisionSystem, birds) {
+          this.stateTimer += dt;
+          this.tailPhase += dt * (this.state === 'follow' ? 14 : 7.5);
+
+          const playerSpeed = Math.hypot(player.vx, player.vy);
+          const distToPlayer = Math.hypot(player.x - this.x, player.y - this.y);
+
+          // Target spot beside/behind player
+          const desiredOffsetDist = 48;
+          const targetAngle = player.angle + this.followSideAngle;
+          const goalX = player.x + Math.cos(targetAngle) * desiredOffsetDist;
+          const goalY = player.y + Math.sin(targetAngle) * desiredOffsetDist;
+          const distToGoal = Math.hypot(goalX - this.x, goalY - this.y);
+
+          // State transitions
+          if (distToPlayer > 95 || (playerSpeed > 35 && distToGoal > 38)) {
+            if (this.state !== 'follow') {
+              this.state = 'follow';
+              this.stateTimer = 0;
+              // Gently vary follow side so puppy feels organic
+              this.followSideAngle = (Math.random() > 0.5 ? 1 : -1) * (2.25 + Math.random() * 0.45);
+            }
+          } else if (distToGoal < 24 && playerSpeed < 18) {
+            if (this.state === 'follow') {
+              this.state = 'idle';
+              this.stateTimer = 0;
+              this.targetHeadOffset = 0;
+            } else if (this.state === 'idle' && this.stateTimer > 1.8) {
+              this.state = Math.random() > 0.4 ? 'sit' : 'look_around';
+              this.stateTimer = 0;
+            } else if (this.state === 'look_around' && this.stateTimer > 2.6) {
+              this.state = 'sit';
+              this.stateTimer = 0;
+              this.targetHeadOffset = 0;
+            } else if (this.state === 'sit' && this.stateTimer > 4.2) {
+              if (Math.random() > 0.5) {
+                this.state = 'look_around';
+                this.stateTimer = 0;
+              } else {
+                this.stateTimer = 1.0;
+              }
+            }
+          }
+
+          // Curious head turns when looking around or watching birds/player
+          if (this.state === 'look_around') {
+            if (Math.floor(this.stateTimer * 1.5) % 2 === 0) {
+              this.targetHeadOffset = 0.52;
+            } else {
+              this.targetHeadOffset = -0.52;
+            }
+          } else if (this.state === 'sit' || this.state === 'idle') {
+            // Glance toward player or passing bird
+            let glancedBird = false;
+            if (birds && birds.length > 0) {
+              for (const b of birds) {
+                if (Math.hypot(b.x - this.x, b.y - this.y) < 220) {
+                  const birdAngle = Math.atan2(b.y - this.y, b.x - this.x);
+                  let diff = birdAngle - this.angle;
+                  while (diff > Math.PI) diff -= Math.PI * 2;
+                  while (diff < -Math.PI) diff += Math.PI * 2;
+                  this.targetHeadOffset = Math.max(-0.6, Math.min(0.6, diff));
+                  glancedBird = true;
+                  break;
+                }
+              }
+            }
+            if (!glancedBird) {
+              this.targetHeadOffset = 0;
+            }
+          } else {
+            this.targetHeadOffset = 0;
+          }
+
+          this.headAngleOffset += (this.targetHeadOffset - this.headAngleOffset) * Math.min(1, 8 * dt);
+
+          // Movement & obstacle avoidance (never teleports)
+          if (this.state === 'follow') {
+            const dx = goalX - this.x;
+            const dy = goalY - this.y;
+            const d = Math.hypot(dx, dy);
+
+            if (d > 4) {
+              // Speed scales smoothly with distance so puppy trots or catches up naturally
+              const desiredSpeed = Math.min(248, Math.max(95, d * 2.5));
+              const dirX = dx / d;
+              const dirY = dy / d;
+
+              this.vx += (dirX * desiredSpeed - this.vx) * Math.min(1, 9.5 * dt);
+              this.vy += (dirY * desiredSpeed - this.vy) * Math.min(1, 9.5 * dt);
+            }
+          } else {
+            const damp = Math.exp(-10 * dt);
+            this.vx *= damp;
+            this.vy *= damp;
+          }
+
+          const prevX = this.x;
+          const prevY = this.y;
+          let nextX = this.x + this.vx * dt;
+          let nextY = this.y + this.vy * dt;
+
+          // Resolve against world obstacles
+          const res = collisionSystem.resolve(nextX, nextY, this.radius);
+
+          // If colliding with a building corner while trying to reach player, slide tangentially
+          if (res.hitAny && this.state === 'follow') {
+            const toPlayerAngle = Math.atan2(player.y - this.y, player.x - this.x);
+            const tangentAngle = toPlayerAngle + Math.PI / 2;
+            const altX = this.x + Math.cos(tangentAngle) * 140 * dt;
+            const altY = this.y + Math.sin(tangentAngle) * 140 * dt;
+            const altRes = collisionSystem.resolve(altX, altY, this.radius);
+            this.x = altRes.x;
+            this.y = altRes.y;
+          } else {
+            this.x = res.x;
+            this.y = res.y;
+          }
+
+          // Keep polite personal space from the player
+          const pDx = this.x - player.x;
+          const pDy = this.y - player.y;
+          const pDist = Math.hypot(pDx, pDy);
+          const minPlayerDist = this.radius + player.radius + 4;
+          if (pDist < minPlayerDist && pDist > 0.001) {
+            const push = minPlayerDist - pDist;
+            this.x += (pDx / pDist) * push;
+            this.y += (pDy / pDist) * push;
+          }
+
+          const movedDist = Math.hypot(this.x - prevX, this.y - prevY);
+          const actualSpeed = movedDist / Math.max(dt, 0.0001);
+
+          if (actualSpeed > 10) {
+            const moveAngle = Math.atan2(this.y - prevY, this.x - prevX);
+            let diff = moveAngle - this.angle;
+            while (diff > Math.PI) diff -= Math.PI * 2;
+            while (diff < -Math.PI) diff += Math.PI * 2;
+            this.angle += diff * Math.min(1, 12 * dt);
+            this.runCycle += movedDist * 0.24;
+          } else if (this.state === 'sit' || this.state === 'idle') {
+            // Gently orient toward player when sitting nearby
+            const facePlayer = Math.atan2(player.y - this.y, player.x - this.x);
+            let diff = facePlayer - this.angle;
+            while (diff > Math.PI) diff -= Math.PI * 2;
+            while (diff < -Math.PI) diff += Math.PI * 2;
+            this.angle += diff * Math.min(1, 3.5 * dt);
+          }
+        }
+
+        draw(ctx) {
+          ctx.save();
+          ctx.translate(this.x, this.y);
+
+          // Soft shadow under puppy
+          ctx.fillStyle = 'rgba(44, 48, 46, 0.20)';
+          ctx.beginPath();
+          ctx.ellipse(2, 5, 11.5, 8.5, 0, 0, Math.PI * 2);
+          ctx.fill();
+
+          ctx.rotate(this.angle);
+
+          const isSitting = this.state === 'sit';
+          const pawOffset = this.state === 'follow' ? Math.sin(this.runCycle) * 4.2 : 0;
+          const tailWag = Math.sin(this.tailPhase) * 0.45;
+
+          // Wagging tail
+          ctx.save();
+          ctx.translate(isSitting ? -7 : -9.5, 0);
+          ctx.rotate(tailWag);
+          ctx.strokeStyle = '#181A1B';
+          ctx.lineWidth = 3.2;
+          ctx.lineCap = 'round';
+          ctx.beginPath();
+          ctx.moveTo(0, 0);
+          ctx.quadraticCurveTo(-5, -2, -7.5, 0);
+          ctx.stroke();
+          ctx.restore();
+
+          // Paws
+          ctx.fillStyle = '#181A1B';
+          if (isSitting) {
+            // Front paws neatly in front
+            ctx.beginPath();
+            ctx.ellipse(6.5, -3.8, 3.2, 2.2, 0, 0, Math.PI * 2);
+            ctx.ellipse(6.5, 3.8, 3.2, 2.2, 0, 0, Math.PI * 2);
+            ctx.fill();
+          } else {
+            ctx.beginPath();
+            ctx.ellipse(5 + pawOffset, -4.5, 3.4, 2.2, 0, 0, Math.PI * 2);
+            ctx.ellipse(5 - pawOffset, 4.5, 3.4, 2.2, 0, 0, Math.PI * 2);
+            ctx.ellipse(-5 - pawOffset, -4.2, 3.2, 2.1, 0, 0, Math.PI * 2);
+            ctx.ellipse(-5 + pawOffset, 4.2, 3.2, 2.1, 0, 0, Math.PI * 2);
+            ctx.fill();
+          }
+
+          // Puppy Body (sleek black coat)
+          ctx.fillStyle = '#1F2324';
+          ctx.strokeStyle = '#121415';
+          ctx.lineWidth = 1.5;
+          ctx.beginPath();
+          if (isSitting) {
+            ctx.ellipse(-1, 0, 7.8, 6.8, 0, 0, Math.PI * 2);
+          } else {
+            ctx.ellipse(-1, 0, 9.2, 6.2, 0, 0, Math.PI * 2);
+          }
+          ctx.fill();
+          ctx.stroke();
+
+          // Signature White Chest Spot (distinctive white patch on chest/neck)
+          ctx.fillStyle = '#F7F5F0';
+          ctx.beginPath();
+          ctx.ellipse(4.8, 0, 3.6, 4.3, 0, 0, Math.PI * 2);
+          ctx.fill();
+
+          // Puppy Head (with curious head rotation)
+          ctx.save();
+          ctx.translate(5.5, 0);
+          ctx.rotate(this.headAngleOffset);
+
+          // Floppy black ears
+          ctx.fillStyle = '#141617';
+          ctx.beginPath();
+          ctx.ellipse(-1.2, -5.8, 3.8, 2.3, -0.35, 0, Math.PI * 2);
+          ctx.ellipse(-1.2, 5.8, 3.8, 2.3, 0.35, 0, Math.PI * 2);
+          ctx.fill();
+
+          // Head cranium
+          ctx.fillStyle = '#232729';
+          ctx.strokeStyle = '#121415';
+          ctx.lineWidth = 1.4;
+          ctx.beginPath();
+          ctx.arc(0.5, 0, 5.6, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.stroke();
+
+          // Snout & tiny dark nose
+          ctx.fillStyle = '#2A2E30';
+          ctx.beginPath();
+          ctx.ellipse(5.0, 0, 3.0, 2.5, 0, 0, Math.PI * 2);
+          ctx.fill();
+
+          ctx.fillStyle = '#0B0C0D';
+          ctx.beginPath();
+          ctx.arc(7.2, 0, 1.4, 0, Math.PI * 2);
+          ctx.fill();
+
+          // Bright expressive eyes
+          ctx.fillStyle = '#F4F1EA';
+          ctx.beginPath();
+          ctx.arc(2.4, -2.3, 1.15, 0, Math.PI * 2);
+          ctx.arc(2.4, 2.3, 1.15, 0, Math.PI * 2);
+          ctx.fill();
+
+          ctx.restore();
+          ctx.restore();
+        }
+      }
+
+      /* =========================================================================
+       * 10. WORLD RENDERER (Architecture, Botany, Shadows, Birds, Wind)
+       * ========================================================================= */
+      class WorldRenderer {
+        constructor() {
+          this.time = 0;
+          this.birds = [];
+          this.clouds = [
+            { x: 450, y: 420, rx: 240, ry: 110, speed: 14 },
+            { x: 1420, y: 880, rx: 290, ry: 130, speed: 11 },
+            { x: 920, y: 1350, rx: 220, ry: 95, speed: 16 }
+          ];
+          this.staticCanvas = null;
+          this.spawnInitialBirds();
+          this.buildStaticLayer();
+        }
+
+        buildStaticLayer() {
+          const off = document.createElement('canvas');
+          off.width = WORLD_W;
+          off.height = WORLD_H;
+          const sctx = off.getContext('2d', { alpha: false });
+
+          // 1. Base sandy ground (#E8E4DA)
+          sctx.fillStyle = PALETTE.sandGround;
+          sctx.fillRect(0, 0, WORLD_W, WORLD_H);
+
+          // Subtle topographical contour rings & perimeter border
+          this.drawGroundContoursAndBorder(sctx);
+
+          // 2. Meadow grass patches
+          for (const m of MEADOW_PATCHES) {
+            sctx.save();
+            sctx.translate(m.x, m.y);
+            sctx.rotate(m.rot);
+            sctx.fillStyle = m.color;
+            sctx.beginPath();
+            sctx.ellipse(0, 0, m.rx, m.ry, 0, 0, Math.PI * 2);
+            sctx.fill();
+            sctx.restore();
+          }
+
+          // 3. Winding Stone Pathways & Central Compass Plaza
+          this.drawPathwaysAndPlaza(sctx, false);
+
+          // 4. Pebbles & Ground Detail
+          for (let i = 0; i < PEBBLES.length; i++) {
+            const p = PEBBLES[i];
+            sctx.fillStyle = p.color;
+            sctx.beginPath();
+            sctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+            sctx.fill();
+          }
+
+          // 5. Raised Botanical Planters, Benches, Rocks, Signposts & Greenhouse
+          this.drawPlanters(sctx);
+          this.drawBenches(sctx);
+          this.drawRocks(sctx);
+          this.drawSignposts(sctx);
+          this.drawGreenhouse(sctx);
+
+          this.staticCanvas = off;
+        }
+
+        spawnInitialBirds() {
+          for (let i = 0; i < 4; i++) {
+            this.birds.push({
+              x: Math.random() * WORLD_W,
+              y: Math.random() * WORLD_H,
+              vx: 58 + Math.random() * 28,
+              vy: -18 + Math.random() * 36,
+              wingPhase: Math.random() * Math.PI * 2,
+              scale: 0.85 + Math.random() * 0.3
+            });
+          }
+        }
+
+        update(dt, quality) {
+          this.time += dt;
+
+          // Update cloud shadows
+          if (quality === 'high') {
+            for (const c of this.clouds) {
+              c.x += c.speed * dt;
+              if (c.x - c.rx > WORLD_W + 100) {
+                c.x = -c.rx - 100;
+              }
+            }
+          }
+
+          // Update flying birds
+          for (const b of this.birds) {
+            b.x += b.vx * dt;
+            b.y += b.vy * dt;
+            b.wingPhase += dt * 11;
+
+            if (b.x > WORLD_W + 160 || b.y < -160 || b.y > WORLD_H + 160) {
+              b.x = -120;
+              b.y = 180 + Math.random() * (WORLD_H - 360);
+              b.vx = 62 + Math.random() * 32;
+              b.vy = -16 + Math.random() * 32;
+            }
+          }
+        }
+
+        drawWorld(ctx, camera, player, dog, activeBuilding, input, quality) {
+          const viewLeft = camera.x - camera.viewW / 2 - 120;
+          const viewRight = camera.x + camera.viewW / 2 + 120;
+          const viewTop = camera.y - camera.viewH / 2 - 120;
+          const viewBottom = camera.y + camera.viewH / 2 + 120;
+
+          ctx.save();
+          ctx.translate(camera.viewW / 2 - camera.x, camera.viewH / 2 - camera.y);
+
+          // 1-4. Blit cached static landscape layer
+          if (this.staticCanvas) {
+            ctx.drawImage(this.staticCanvas, 0, 0);
+          }
+
+          // Animated water ripple in central plaza basin (1200, 920)
+          const rippleR = 12 + ((this.time * 9) % 20);
+          const rippleAlpha = Math.max(0, 1 - (rippleR - 12) / 20) * 0.45;
+          ctx.strokeStyle = `rgba(244, 241, 234, ${rippleAlpha.toFixed(2)})`;
+          ctx.lineWidth = 1.5;
+          ctx.beginPath();
+          ctx.arc(1200, 920, rippleR, 0, Math.PI * 2);
+          ctx.stroke();
+
+          // 5. Swaying Grass Tufts
+          const step = quality === 'high' ? 1 : 2;
+          for (let i = 0; i < GRASS_TUFTS.length; i += step) {
+            const g = GRASS_TUFTS[i];
+            if (g.x < viewLeft || g.x > viewRight || g.y < viewTop || g.y > viewBottom) continue;
+            const wind = Math.sin(this.time * 2.2 + g.x * 0.008 + g.phase) * 2.8;
+            ctx.strokeStyle = g.hueOffset;
+            ctx.lineWidth = 1.6;
+            ctx.lineCap = 'round';
+            ctx.beginPath();
+            for (let b = -1; b <= 1; b++) {
+              ctx.moveTo(g.x + b * 2.6, g.y);
+              ctx.quadraticCurveTo(
+                g.x + b * 3.2 + wind * 0.5,
+                g.y - g.size * 0.6,
+                g.x + b * 4.2 + wind,
+                g.y - g.size
+              );
+            }
+            ctx.stroke();
+          }
+
+          // 6. Click-to-Move Ground Target Ripple
+          if (input.pointerTarget && !input.blockedByModal) {
+            const tx = input.pointerTarget.x;
+            const ty = input.pointerTarget.y;
+            const pulse = (Math.sin(this.time * 6) + 1) * 0.5;
+            ctx.save();
+            ctx.strokeStyle = input.pointerTarget.building ? input.pointerTarget.building.accent : PALETTE.sage;
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.arc(tx, ty, 10 + pulse * 6, 0, Math.PI * 2);
+            ctx.stroke();
+            ctx.fillStyle = PALETTE.outline;
+            ctx.beginPath();
+            ctx.arc(tx, ty, 3, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+          }
+
+          // 7. Dynamic Bollard Lanterns
+          this.drawLanterns(ctx, player);
+
+          // 9. Main Project Buildings: ELEPHANTOLOGY & ELEPHANTORINA
+          for (const b of BUILDINGS) {
+            const isHoveredOrActive = activeBuilding && activeBuilding.id === b.id;
+            this.drawProjectBuilding(ctx, b, isHoveredOrActive);
+          }
+
+          // 10. Low Shrubs
+          for (const s of SHRUBS) {
+            this.drawShrub(ctx, s);
+          }
+
+          // 11. Y-Sorted Characters (Player & Black Puppy Companion)
+          if (dog.y < player.y) {
+            dog.draw(ctx);
+            player.draw(ctx);
+          } else {
+            player.draw(ctx);
+            dog.draw(ctx);
+          }
+
+          // 12. Specimen Trees (Canopies cast soft shade and sway in breeze)
+          for (const t of TREES) {
+            if (t.x + t.r * 2 < viewLeft || t.x - t.r * 2 > viewRight || t.y + t.r * 2 < viewTop || t.y - t.r * 2 > viewBottom) {
+              continue;
+            }
+            this.drawTree(ctx, t, player, quality);
+          }
+
+          // 13. In-World Floating Entrance Prompt Badge
+          if (activeBuilding && !input.blockedByModal) {
+            this.drawBuildingEntrancePrompt(ctx, activeBuilding);
+          }
+
+          // 14. Flying Birds & Soft Cloud Shadows
+          this.drawBirds(ctx);
+          if (quality === 'high') {
+            this.drawCloudShadows(ctx);
+          }
+
+          ctx.restore();
+        }
+
+        drawGroundContoursAndBorder(ctx) {
+          // Subtle topographic contour rings
+          ctx.strokeStyle = 'rgba(44, 48, 46, 0.045)';
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.ellipse(615, 500, 420, 310, -0.1, 0, Math.PI * 2);
+          ctx.ellipse(1785, 500, 420, 310, 0.1, 0, Math.PI * 2);
+          ctx.ellipse(1200, 980, 560, 410, 0, 0, Math.PI * 2);
+          ctx.stroke();
+
+          // Architectural campus perimeter stone wall / hedge boundary
+          const m = 48;
+          ctx.strokeStyle = PALETTE.stoneTrim;
+          ctx.lineWidth = 14;
+          ctx.strokeRect(m, m, WORLD_W - m * 2, WORLD_H - m * 2);
+
+          ctx.strokeStyle = PALETTE.outline;
+          ctx.lineWidth = 2.5;
+          ctx.strokeRect(m - 7, m - 7, WORLD_W - (m - 7) * 2, WORLD_H - (m - 7) * 2);
+          ctx.strokeRect(m + 7, m + 7, WORLD_W - (m + 7) * 2, WORLD_H - (m + 7) * 2);
+        }
+
+        drawPathwaysAndPlaza(ctx) {
+          ctx.save();
+          ctx.lineCap = 'round';
+          ctx.lineJoin = 'round';
+
+          // Outer curb stone border of paths
+          const drawRoadNetwork = (width, color) => {
+            ctx.strokeStyle = color;
+            ctx.lineWidth = width;
+
+            // West Wing (Elephantology) to Central Plaza curved path
+            ctx.beginPath();
+            ctx.moveTo(695, 765);
+            ctx.lineTo(695, 845);
+            ctx.bezierCurveTo(695, 920, 950, 920, 1200, 920);
+            ctx.stroke();
+
+            // East Wing (Elephantorina) to Central Plaza curved path
+            ctx.beginPath();
+            ctx.moveTo(1705, 765);
+            ctx.lineTo(1705, 845);
+            ctx.bezierCurveTo(1705, 920, 1450, 920, 1200, 920);
+            ctx.stroke();
+
+            // North Botanical Greenhouse promenade
+            ctx.beginPath();
+            ctx.moveTo(1200, 400);
+            ctx.lineTo(1200, 920);
+            ctx.stroke();
+
+            // Upper scenic walkway connecting West Wing, Greenhouse promenade, and East Wing
+            ctx.beginPath();
+            ctx.moveTo(695, 825);
+            ctx.quadraticCurveTo(950, 680, 1200, 680);
+            ctx.quadraticCurveTo(1450, 680, 1705, 825);
+            ctx.stroke();
+
+            // South Entrance promenade
+            ctx.beginPath();
+            ctx.moveTo(1200, 920);
+            ctx.lineTo(1200, 1460);
+            ctx.stroke();
+          };
+
+          // Path outline, stone curb, and warm gravel fill
+          drawRoadNetwork(92, PALETTE.outline);
+          drawRoadNetwork(87, PALETTE.stoneLight);
+          drawRoadNetwork(72, PALETTE.sandPath);
+
+          // Central Plaza Circle (1200, 920)
+          const px = 1200;
+          const py = 920;
+          ctx.fillStyle = PALETTE.stoneLight;
+          ctx.strokeStyle = PALETTE.outline;
+          ctx.lineWidth = 2.5;
+          ctx.beginPath();
+          ctx.arc(px, py, 152, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.stroke();
+
+          ctx.fillStyle = PALETTE.sandPath;
+          ctx.beginPath();
+          ctx.arc(px, py, 134, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.stroke();
+
+          // Inner architectural compass / botanical water & stone medallion
+          ctx.fillStyle = PALETTE.stoneLight;
+          ctx.beginPath();
+          ctx.arc(px, py, 54, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.stroke();
+
+          // Compass spokes
+          ctx.strokeStyle = 'rgba(44, 48, 46, 0.25)';
+          ctx.lineWidth = 1.5;
+          for (let a = 0; a < 8; a++) {
+            const ang = (a * Math.PI) / 4;
+            ctx.beginPath();
+            ctx.moveTo(px + Math.cos(ang) * 54, py + Math.sin(ang) * 54);
+            ctx.lineTo(px + Math.cos(ang) * 133, py + Math.sin(ang) * 133);
+            ctx.stroke();
+          }
+
+          // Center serene reflecting basin
+          ctx.fillStyle = PALETTE.water;
+          ctx.strokeStyle = PALETTE.outline;
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.arc(px, py, 34, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.stroke();
+
+          // Center bronze/terracotta sundial gnomon
+          ctx.fillStyle = PALETTE.terracotta;
+          ctx.strokeStyle = PALETTE.outline;
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.arc(px, py, 7.5, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.stroke();
+
+          // South Arrival Arch Stone Pad
+          ctx.fillStyle = PALETTE.stoneLight;
+          ctx.strokeStyle = PALETTE.outline;
+          ctx.lineWidth = 2.2;
+          ctx.beginPath();
+          ctx.roundRect(1115, 1435, 170, 56, 12);
+          ctx.fill();
+          ctx.stroke();
+
+          ctx.fillStyle = PALETTE.outline;
+          ctx.font = '700 11px system-ui, -apple-system, sans-serif';
+          ctx.textAlign = 'center';
+          ctx.fillText('ЮЖНЫЕ ВОРОТА СТАНЦИИ', 1200, 1468);
+
+          ctx.restore();
+        }
+
+        drawPlanters(ctx) {
+          for (const p of PLANTERS) {
+            ctx.save();
+            // Shadow
+            ctx.fillStyle = 'rgba(44, 48, 46, 0.14)';
+            ctx.beginPath();
+            ctx.roundRect(p.x + 7, p.y + 9, p.w, p.h, 8);
+            ctx.fill();
+
+            // Stone border
+            ctx.fillStyle = PALETTE.stoneLight;
+            ctx.strokeStyle = PALETTE.outline;
+            ctx.lineWidth = 2.2;
+            ctx.beginPath();
+            ctx.roundRect(p.x, p.y, p.w, p.h, 8);
+            ctx.fill();
+            ctx.stroke();
+
+            // Rich soil bed
+            ctx.fillStyle = '#5E4B3B';
+            ctx.beginPath();
+            ctx.roundRect(p.x + 7, p.y + 7, p.w - 14, p.h - 14, 5);
+            ctx.fill();
+            ctx.stroke();
+
+            // Botanical foliage & accent blossoms inside planter
+            const count = 4;
+            for (let i = 0; i < count; i++) {
+              const bx = p.x + 22 + (i * (p.w - 44)) / (count - 1);
+              const by = p.y + p.h / 2 + Math.sin(this.time * 2 + i) * 1.2;
+              ctx.fillStyle = i % 2 === 0 ? PALETTE.sage : PALETTE.olive;
+              ctx.beginPath();
+              ctx.arc(bx, by, 10, 0, Math.PI * 2);
+              ctx.fill();
+              ctx.stroke();
+
+              ctx.fillStyle = p.accent;
+              ctx.beginPath();
+              ctx.arc(bx + 2, by - 2, 3.5, 0, Math.PI * 2);
+              ctx.fill();
+            }
+            ctx.restore();
+          }
+        }
+
+        drawBenches(ctx) {
+          for (const b of BENCHES) {
+            ctx.save();
+            // Shadow
+            ctx.fillStyle = 'rgba(44, 48, 46, 0.16)';
+            ctx.beginPath();
+            ctx.roundRect(b.x + 5, b.y + 7, b.w, b.h, 5);
+            ctx.fill();
+
+            // Stone side supports
+            ctx.fillStyle = PALETTE.stoneLight;
+            ctx.strokeStyle = PALETTE.outline;
+            ctx.lineWidth = 2;
+            ctx.fillRect(b.x + 4, b.y - 2, 8, b.h + 4);
+            ctx.strokeRect(b.x + 4, b.y - 2, 8, b.h + 4);
+            ctx.fillRect(b.x + b.w - 12, b.y - 2, 8, b.h + 4);
+            ctx.strokeRect(b.x + b.w - 12, b.y - 2, 8, b.h + 4);
+
+            // Warm timber seat planks
+            ctx.fillStyle = PALETTE.wood;
+            ctx.beginPath();
+            ctx.roundRect(b.x, b.y, b.w, b.h, 4);
+            ctx.fill();
+            ctx.stroke();
+
+            // Plank dividing line & backrest
+            ctx.beginPath();
+            ctx.moveTo(b.x + 3, b.y + b.h * 0.55);
+            ctx.lineTo(b.x + b.w - 3, b.y + b.h * 0.55);
+            ctx.stroke();
+
+            ctx.fillStyle = PALETTE.woodDark;
+            ctx.beginPath();
+            ctx.roundRect(b.x + 2, b.y + 2, b.w - 4, 6, 2);
+            ctx.fill();
+            ctx.stroke();
+            ctx.restore();
+          }
+        }
+
+        drawRocks(ctx) {
+          for (const r of ROCKS) {
+            ctx.save();
+            ctx.translate(r.x, r.y);
+            // Shadow
+            ctx.fillStyle = 'rgba(44, 48, 46, 0.14)';
+            ctx.beginPath();
+            ctx.ellipse(5, 6, r.r * 1.04, r.r * 0.82, 0.2, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Faceted stone body
+            ctx.fillStyle = '#D7D2C6';
+            ctx.strokeStyle = PALETTE.outline;
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.ellipse(0, 0, r.r, r.r * 0.78, r.variant * 0.6, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+
+            // Highlight facet
+            ctx.fillStyle = PALETTE.stoneLight;
+            ctx.beginPath();
+            ctx.ellipse(-r.r * 0.22, -r.r * 0.18, r.r * 0.52, r.r * 0.35, r.variant * 0.6, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+          }
+        }
+
+        drawSignposts(ctx) {
+          for (const s of SIGNPOSTS) {
+            ctx.save();
+            // Shadow
+            ctx.fillStyle = 'rgba(44, 48, 46, 0.16)';
+            ctx.beginPath();
+            ctx.ellipse(s.x + 4, s.y + 5, 14, 6, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Wooden directional board
+            ctx.fillStyle = PALETTE.stoneLight;
+            ctx.strokeStyle = PALETTE.outline;
+            ctx.lineWidth = 1.8;
+            ctx.beginPath();
+            ctx.roundRect(s.x - 52, s.y - 10, 104, 20, 5);
+            ctx.fill();
+            ctx.stroke();
+
+            ctx.fillStyle = PALETTE.outline;
+            ctx.font = '700 9.5px system-ui, -apple-system, sans-serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(s.text, s.x, s.y + 0.5);
+            ctx.restore();
+          }
+        }
+
+        drawLanterns(ctx, player) {
+          for (const l of LANTERNS) {
+            const dist = Math.hypot(player.x - l.x, player.y - l.y);
+            const nearBoost = dist < 110 ? 0.28 : 0.14;
+
+            ctx.save();
+            // Warm ground glow halo
+            const grad = ctx.createRadialGradient(l.x, l.y, 2, l.x, l.y, 34);
+            grad.addColorStop(0, `rgba(238, 185, 112, ${nearBoost})`);
+            grad.addColorStop(1, 'rgba(238, 185, 112, 0)');
+            ctx.fillStyle = grad;
+            ctx.beginPath();
+            ctx.arc(l.x, l.y, 34, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Bollard housing
+            ctx.fillStyle = PALETTE.outline;
+            ctx.beginPath();
+            ctx.arc(l.x, l.y, 6.5, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.fillStyle = '#F7D388';
+            ctx.beginPath();
+            ctx.arc(l.x, l.y, 3.6, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+          }
+        }
+
+        drawGreenhouse(ctx) {
+          const g = GREENHOUSE;
+          ctx.save();
+
+          // Architectural drop shadow
+          ctx.fillStyle = 'rgba(44, 48, 46, 0.16)';
+          ctx.beginPath();
+          ctx.roundRect(g.x + 14, g.y + 18, g.w, g.h, 14);
+          ctx.fill();
+
+          // Stone base plinth
+          ctx.fillStyle = PALETTE.stoneLight;
+          ctx.strokeStyle = PALETTE.outline;
+          ctx.lineWidth = 2.5;
+          ctx.beginPath();
+          ctx.roundRect(g.x, g.y, g.w, g.h, 14);
+          ctx.fill();
+          ctx.stroke();
+
+          // Interior botanical beds visible through glass roof
+          ctx.fillStyle = '#DCE4D5';
+          ctx.beginPath();
+          ctx.roundRect(g.x + 12, g.y + 12, g.w - 24, g.h - 24, 10);
+          ctx.fill();
+
+          // Lush specimen ferns & palms inside greenhouse
+          const plants = [
+            { x: g.x + 58, y: g.y + 62, r: 26, c: PALETTE.sage },
+            { x: g.x + 95, y: g.y + 118, r: 22, c: PALETTE.olive },
+            { x: g.x + 165, y: g.y + 82, r: 30, c: PALETTE.sageLight },
+            { x: g.x + 235, y: g.y + 66, r: 25, c: PALETTE.sage },
+            { x: g.x + 272, y: g.y + 122, r: 24, c: PALETTE.olive }
+          ];
+          for (const pl of plants) {
+            ctx.fillStyle = pl.c;
+            ctx.beginPath();
+            ctx.arc(pl.x, pl.y, pl.r, 0, Math.PI * 2);
+            ctx.fill();
+          }
+
+          // Glass roof panels & mullions
+          ctx.fillStyle = PALETTE.glass;
+          ctx.strokeStyle = PALETTE.outline;
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.roundRect(g.x + 10, g.y + 10, g.w - 20, g.h - 20, 10);
+          ctx.fill();
+          ctx.stroke();
+
+          // Structural glass ribs
+          for (let i = 1; i < 6; i++) {
+            const rx = g.x + 10 + (i * (g.w - 20)) / 6;
+            ctx.beginPath();
+            ctx.moveTo(rx, g.y + 10);
+            ctx.lineTo(rx, g.y + g.h - 10);
+            ctx.stroke();
+          }
+
+          // Central ridge beam
+          ctx.fillStyle = PALETTE.sage;
+          ctx.fillRect(g.x + 10, g.y + g.h / 2 - 4, g.w - 20, 8);
+          ctx.strokeRect(g.x + 10, g.y + g.h / 2 - 4, g.w - 20, 8);
+
+          // Diagonal glass specular reflection lines
+          ctx.strokeStyle = 'rgba(255, 255, 255, 0.55)';
+          ctx.lineWidth = 3;
+          for (let i = 0; i < 4; i++) {
+            const sx = g.x + 40 + i * 72;
+            ctx.beginPath();
+            ctx.moveTo(sx, g.y + 24);
+            ctx.lineTo(sx + 26, g.y + 58);
+            ctx.stroke();
+          }
+
+          // Quiet decorative label on greenhouse sill
+          ctx.fillStyle = PALETTE.stoneLight;
+          ctx.strokeStyle = PALETTE.outline;
+          ctx.lineWidth = 1.8;
+          ctx.beginPath();
+          ctx.roundRect(g.x + g.w / 2 - 78, g.y + g.h - 14, 156, 22, 6);
+          ctx.fill();
+          ctx.stroke();
+
+          ctx.fillStyle = PALETTE.outline;
+          ctx.font = '700 10px system-ui, -apple-system, sans-serif';
+          ctx.textAlign = 'center';
+          ctx.fillText('БОТАНИЧЕСКАЯ ОРАНЖЕРЕЯ', g.x + g.w / 2, g.y + g.h + 1);
+
+          ctx.restore();
+        }
+
+        drawProjectBuilding(ctx, b, isActive) {
+          ctx.save();
+          const isWest = b.id === 'elephantology';
+
+          // 1. Entrance Terrace / Porch Steps (in front of doorX, doorY)
+          const porchW = 126;
+          const porchH = 54;
+          const porchX = b.doorX - porchW / 2;
+          const porchY = b.y + b.h - 6;
+
+          // Active entrance glow aura when player is nearby
+          if (isActive) {
+            const pulse = (Math.sin(this.time * 5) + 1) * 0.5;
+            ctx.save();
+            ctx.fillStyle = isWest
+              ? `rgba(46, 90, 68, ${0.16 + pulse * 0.12})`
+              : `rgba(200, 109, 81, ${0.18 + pulse * 0.14})`;
+            ctx.beginPath();
+            ctx.roundRect(porchX - 14, porchY - 8, porchW + 28, porchH + 24, 16);
+            ctx.fill();
+            ctx.restore();
+          }
+
+          // Porch stone slab
+          ctx.fillStyle = PALETTE.stoneLight;
+          ctx.strokeStyle = isActive ? b.accent : PALETTE.outline;
+          ctx.lineWidth = isActive ? 3 : 2.2;
+          ctx.beginPath();
+          ctx.roundRect(porchX, porchY, porchW, porchH, 8);
+          ctx.fill();
+          ctx.stroke();
+
+          // Step lines on porch
+          ctx.strokeStyle = 'rgba(44, 48, 46, 0.35)';
+          ctx.lineWidth = 1.5;
+          ctx.beginPath();
+          ctx.moveTo(porchX + 10, porchY + 18);
+          ctx.lineTo(porchX + porchW - 10, porchY + 18);
+          ctx.moveTo(porchX + 10, porchY + 34);
+          ctx.lineTo(porchX + porchW - 10, porchY + 34);
+          ctx.stroke();
+
+          // Accent welcome mat / threshold inlay
+          ctx.fillStyle = b.accent;
+          ctx.strokeStyle = PALETTE.outline;
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.roundRect(b.doorX - 36, b.y + b.h - 2, 72, 16, 4);
+          ctx.fill();
+          ctx.stroke();
+
+          // 2. Main Building Soft Cast Shadow
+          ctx.fillStyle = 'rgba(44, 48, 46, 0.18)';
+          ctx.beginPath();
+          ctx.roundRect(b.x + 18, b.y + 22, b.w, b.h, 16);
+          ctx.fill();
+
+          // 3. Outer Architectural Shell (#F4F1EA with #2C302E outline)
+          ctx.fillStyle = PALETTE.stoneLight;
+          ctx.strokeStyle = PALETTE.outline;
+          ctx.lineWidth = 3;
+          ctx.beginPath();
+          ctx.roundRect(b.x, b.y, b.w, b.h, 16);
+          ctx.fill();
+          ctx.stroke();
+
+          // Inner roof parapet frame
+          ctx.fillStyle = PALETTE.stoneWarm;
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.roundRect(b.x + 14, b.y + 14, b.w - 28, b.h - 28, 11);
+          ctx.fill();
+          ctx.stroke();
+
+          if (isWest) {
+            // === BUILDING 1: ELEPHANTOLOGY (Academic Research Library) ===
+            // Sage green architectural wing bands
+            ctx.fillStyle = PALETTE.sage;
+            ctx.beginPath();
+            ctx.roundRect(b.x + 26, b.y + 26, b.w - 52, 34, 7);
+            ctx.fill();
+            ctx.stroke();
+
+            // Three large library skylight bays showing warm interior study tables & shelves
+            const bayW = 92;
+            const bayH = 98;
+            const startX = b.x + 36;
+            const gap = 21;
+            for (let i = 0; i < 3; i++) {
+              const bx = startX + i * (bayW + gap);
+              const by = b.y + 72;
+
+              // Warm library interior glow
+              ctx.fillStyle = '#EFE3C8';
+              ctx.beginPath();
+              ctx.roundRect(bx, by, bayW, bayH, 8);
+              ctx.fill();
+
+              // Bookshelf rows visible inside library skylight
+              ctx.fillStyle = PALETTE.wood;
+              ctx.fillRect(bx + 12, by + 16, bayW - 24, 9);
+              ctx.fillRect(bx + 12, by + 38, bayW - 24, 9);
+              ctx.fillStyle = PALETTE.sage;
+              ctx.fillRect(bx + 18, by + 64, bayW - 36, 20);
+
+              // Glass skylight overlay
+              ctx.fillStyle = 'rgba(176, 210, 202, 0.52)';
+              ctx.strokeStyle = PALETTE.outline;
+              ctx.lineWidth = 2;
+              ctx.beginPath();
+              ctx.roundRect(bx, by, bayW, bayH, 8);
+              ctx.fill();
+              ctx.stroke();
+
+              // Window mullion crossbars
+              ctx.beginPath();
+              ctx.moveTo(bx + bayW / 2, by);
+              ctx.lineTo(bx + bayW / 2, by + bayH);
+              ctx.moveTo(bx, by + bayH / 2);
+              ctx.lineTo(bx + bayW, by + bayH / 2);
+              ctx.stroke();
+            }
+          } else {
+            // === BUILDING 2: ELEPHANTORINA (Modern Interactive Education Center) ===
+            // Contemporary asymmetric terracotta architectural roof & solar/terracotta louvers
+            ctx.fillStyle = PALETTE.terracotta;
+            ctx.beginPath();
+            ctx.roundRect(b.x + 26, b.y + 26, 146, b.h - 78, 9);
+            ctx.fill();
+            ctx.stroke();
+
+            // Architectural louver ribs on terracotta wing
+            ctx.strokeStyle = 'rgba(44, 48, 46, 0.35)';
+            ctx.lineWidth = 2;
+            for (let ly = b.y + 44; ly < b.y + b.h - 62; ly += 18) {
+              ctx.beginPath();
+              ctx.moveTo(b.x + 36, ly);
+              ctx.lineTo(b.x + 162, ly);
+              ctx.stroke();
+            }
+
+            // Large panoramic interactive atrium skylight on the right wing
+            const ax = b.x + 186;
+            const ay = b.y + 26;
+            const aw = 178;
+            const ah = 144;
+
+            ctx.fillStyle = '#F3E4D2';
+            ctx.strokeStyle = PALETTE.outline;
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.roundRect(ax, ay, aw, ah, 10);
+            ctx.fill();
+
+            // Circular interactive rotunda table inside atrium
+            ctx.fillStyle = PALETTE.terracottaLight;
+            ctx.beginPath();
+            ctx.arc(ax + aw / 2, ay + ah / 2, 32, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+
+            ctx.fillStyle = PALETTE.stoneLight;
+            ctx.beginPath();
+            ctx.arc(ax + aw / 2, ay + ah / 2, 16, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Glass roof over atrium
+            ctx.fillStyle = 'rgba(186, 216, 212, 0.50)';
+            ctx.beginPath();
+            ctx.roundRect(ax, ay, aw, ah, 10);
+            ctx.fill();
+            ctx.stroke();
+
+            // Geometric window grid
+            ctx.beginPath();
+            ctx.moveTo(ax + aw / 2, ay);
+            ctx.lineTo(ax + aw / 2, ay + ah);
+            ctx.moveTo(ax, ay + ah / 2);
+            ctx.lineTo(ax + aw, ay + ah / 2);
+            ctx.stroke();
+          }
+
+          // 4. Prominent Architectural Signboard (ELEPHANTOLOGY / ELEPHANTORINA)
+          const signW = 246;
+          const signH = 40;
+          const signX = b.doorX - signW / 2;
+          const signY = b.y + b.h - 48;
+
+          ctx.fillStyle = PALETTE.outline;
+          ctx.beginPath();
+          ctx.roundRect(signX, signY, signW, signH, 9);
+          ctx.fill();
+
+          // Accent trim bar on signboard
+          ctx.fillStyle = b.accent;
+          ctx.beginPath();
+          ctx.roundRect(signX + 6, signY + 6, 10, signH - 12, 4);
+          ctx.fill();
+          ctx.beginPath();
+          ctx.roundRect(signX + signW - 16, signY + 6, 10, signH - 12, 4);
+          ctx.fill();
+
+          ctx.fillStyle = PALETTE.stoneLight;
+          ctx.font = '700 15px system-ui, -apple-system, sans-serif';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.letterSpacing = '2px';
+          ctx.fillText(b.title, b.doorX, signY + signH / 2 + 1);
+
+          ctx.restore();
+        }
+
+        drawBuildingEntrancePrompt(ctx, b) {
+          const floatY = Math.sin(this.time * 4.2) * 3.5;
+          const px = b.doorX;
+          const py = b.y + b.h - 76 + floatY;
+
+          ctx.save();
+          ctx.font = '700 12px system-ui, -apple-system, sans-serif';
+          const badgeW = 196;
+          const badgeH = 36;
+
+          // Shadow
+          ctx.fillStyle = 'rgba(44, 48, 46, 0.22)';
+          ctx.beginPath();
+          ctx.roundRect(px - badgeW / 2 + 2, py - badgeH / 2 + 4, badgeW, badgeH, 10);
+          ctx.fill();
+
+          // Badge background
+          ctx.fillStyle = PALETTE.stoneLight;
+          ctx.strokeStyle = PALETTE.outline;
+          ctx.lineWidth = 2.2;
+          ctx.beginPath();
+          ctx.roundRect(px - badgeW / 2, py - badgeH / 2, badgeW, badgeH, 10);
+          ctx.fill();
+          ctx.stroke();
+
+          // Keycap [E]
+          ctx.fillStyle = b.accent;
+          ctx.beginPath();
+          ctx.roundRect(px - badgeW / 2 + 7, py - 11, 24, 22, 5);
+          ctx.fill();
+
+          ctx.fillStyle = '#FFFFFF';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText('E', px - badgeW / 2 + 19, py + 0.5);
+
+          // Prompt text
+          ctx.fillStyle = PALETTE.outline;
+          ctx.textAlign = 'left';
+          ctx.fillText('Взаимодействовать', px - badgeW / 2 + 39, py + 0.5);
+
+          ctx.restore();
+        }
+
+        drawShrub(ctx, s) {
+          const sway = Math.sin(this.time * 2.4 + s.x * 0.02) * 1.4;
+          ctx.save();
+          ctx.translate(s.x + sway, s.y);
+
+          ctx.fillStyle = 'rgba(44, 48, 46, 0.14)';
+          ctx.beginPath();
+          ctx.arc(4, 5, s.r, 0, Math.PI * 2);
+          ctx.fill();
+
+          ctx.fillStyle = s.color;
+          ctx.strokeStyle = PALETTE.outline;
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.arc(0, 0, s.r, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.stroke();
+
+          ctx.fillStyle = 'rgba(244, 241, 234, 0.18)';
+          ctx.beginPath();
+          ctx.arc(-s.r * 0.28, -s.r * 0.28, s.r * 0.48, 0, Math.PI * 2);
+          ctx.fill();
+
+          ctx.restore();
+        }
+
+        drawTree(ctx, t, player, quality) {
+          const swayX = Math.sin(this.time * 1.7 + t.phase) * 2.6;
+          const swayY = Math.cos(this.time * 1.4 + t.phase) * 1.8;
+
+          // Fade canopy slightly if player walks directly underneath so silhouette stays readable
+          const distToPlayer = Math.hypot(player.x - t.x, player.y - t.y);
+          const canopyAlpha = distToPlayer < t.r + 12 ? 0.62 : 0.97;
+
+          ctx.save();
+          // Ground cast shadow
+          ctx.fillStyle = 'rgba(44, 48, 46, 0.15)';
+          ctx.beginPath();
+          ctx.ellipse(t.x + 16, t.y + 20, t.r * 0.98, t.r * 0.82, 0, 0, Math.PI * 2);
+          ctx.fill();
+
+          // Tree Trunk
+          ctx.fillStyle = PALETTE.woodDark;
+          ctx.strokeStyle = PALETTE.outline;
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.arc(t.x, t.y, t.trunkR, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.stroke();
+
+          // Multi-lobed botanical canopy
+          ctx.globalAlpha = canopyAlpha;
+          const baseColor =
+            t.kind === 'acacia' ? PALETTE.sage : t.kind === 'olive' ? PALETTE.olive : PALETTE.sageLight;
+          const highlightColor =
+            t.kind === 'acacia' ? '#42755B' : t.kind === 'olive' ? '#81946B' : '#63947A';
+
+          ctx.translate(t.x + swayX, t.y + swayY);
+
+          // Main crown
+          ctx.fillStyle = baseColor;
+          ctx.strokeStyle = PALETTE.outline;
+          ctx.lineWidth = 2.4;
+          ctx.beginPath();
+          ctx.arc(0, 0, t.r, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.stroke();
+
+          if (quality === 'high') {
+            // Secondary organic sub-canopy lobes
+            const lobes = [
+              { x: -t.r * 0.36, y: -t.r * 0.28, r: t.r * 0.62 },
+              { x: t.r * 0.34, y: -t.r * 0.22, r: t.r * 0.56 },
+              { x: -t.r * 0.15, y: t.r * 0.32, r: t.r * 0.58 }
+            ];
+            ctx.fillStyle = highlightColor;
+            for (const l of lobes) {
+              ctx.beginPath();
+              ctx.arc(l.x, l.y, l.r, 0, Math.PI * 2);
+              ctx.fill();
+            }
+
+            // Sunlit top-left botanical leaf cluster highlight
+            ctx.fillStyle = 'rgba(244, 241, 234, 0.16)';
+            ctx.beginPath();
+            ctx.arc(-t.r * 0.32, -t.r * 0.32, t.r * 0.42, 0, Math.PI * 2);
+            ctx.fill();
+          }
+
+          ctx.restore();
+        }
+
+        drawBirds(ctx) {
+          for (const b of this.birds) {
+            const flap = Math.sin(b.wingPhase) * 5.5;
+            const angle = Math.atan2(b.vy, b.vx);
+
+            // Distant bird ground shadow
+            ctx.save();
+            ctx.translate(b.x + 45, b.y + 68);
+            ctx.rotate(angle);
+            ctx.fillStyle = 'rgba(44, 48, 46, 0.10)';
+            ctx.beginPath();
+            ctx.ellipse(0, 0, 6 * b.scale, 3 * b.scale, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+
+            // Bird silhouette in flight
+            ctx.save();
+            ctx.translate(b.x, b.y);
+            ctx.rotate(angle);
+            ctx.scale(b.scale, b.scale);
+            ctx.strokeStyle = PALETTE.outline;
+            ctx.lineWidth = 2.2;
+            ctx.lineCap = 'round';
+            ctx.beginPath();
+            ctx.moveTo(-4, -flap);
+            ctx.quadraticCurveTo(0, -1, 3, 0);
+            ctx.quadraticCurveTo(0, 1, -4, flap);
+            ctx.stroke();
+            ctx.restore();
+          }
+        }
+
+        drawCloudShadows(ctx) {
+          ctx.save();
+          ctx.fillStyle = 'rgba(44, 48, 46, 0.045)';
+          for (const c of this.clouds) {
+            ctx.beginPath();
+            ctx.ellipse(c.x, c.y, c.rx, c.ry, -0.18, 0, Math.PI * 2);
+            ctx.fill();
+          }
+          ctx.restore();
+        }
+      }
+
+      /* =========================================================================
+       * 11. UI & MODAL MANAGER
+       * ========================================================================= */
+      class UIManager {
+        constructor(storage, audio, input, onResetSpawn, onWalkToBuilding) {
+          this.storage = storage;
+          this.audio = audio;
+          this.input = input;
+          this.onResetSpawn = onResetSpawn;
+          this.onWalkToBuilding = onWalkToBuilding;
+
+          this.activeModal = null; // 'building' | 'projects' | 'settings' | null
+          this.currentBuilding = null;
+
+          // DOM Elements
+          this.btnProjects = document.getElementById('btn-projects');
+          this.btnSound = document.getElementById('btn-sound');
+          this.iconSoundOn = document.getElementById('icon-sound-on');
+          this.iconSoundOff = document.getElementById('icon-sound-off');
+          this.labelSound = document.getElementById('label-sound');
+          this.btnSettings = document.getElementById('btn-settings');
+          this.btnResetQuick = document.getElementById('btn-reset-quick');
+
+          this.interactBanner = document.getElementById('interact-banner');
+          this.interactBuildingTitle = document.getElementById('interact-building-title');
+
+          this.modalBuildingBackdrop = document.getElementById('modal-building-backdrop');
+          this.modalBuildingCard = document.getElementById('modal-building-card');
+          this.buildingModalKicker = document.getElementById('building-modal-kicker');
+          this.buildingModalTitle = document.getElementById('building-modal-title');
+          this.buildingModalArt = document.getElementById('building-modal-art');
+          this.buildingModalDesc = document.getElementById('building-modal-desc');
+          this.buildingLinkSite = document.getElementById('building-link-site');
+          this.buildingLinkGithub = document.getElementById('building-link-github');
+
+          this.modalProjectsBackdrop = document.getElementById('modal-projects-backdrop');
+          this.modalSettingsBackdrop = document.getElementById('modal-settings-backdrop');
+
+          this.sliderAmbient = document.getElementById('slider-ambient');
+          this.valAmbient = document.getElementById('val-ambient');
+          this.sliderSfx = document.getElementById('slider-sfx');
+          this.valSfx = document.getElementById('val-sfx');
+          this.btnQualityHigh = document.getElementById('btn-quality-high');
+          this.btnQualityLow = document.getElementById('btn-quality-low');
+          this.btnFullscreen = document.getElementById('btn-fullscreen');
+          this.btnResetSpawn = document.getElementById('btn-reset-spawn');
+
+          this.syncControlsFromStorage();
+          this.bindEvents();
+        }
+
+        syncControlsFromStorage() {
+          const s = this.storage.state;
+          this.iconSoundOn.style.display = s.muted ? 'none' : 'block';
+          this.iconSoundOff.style.display = s.muted ? 'block' : 'none';
+          this.btnSound.setAttribute('aria-pressed', s.muted ? 'true' : 'false');
+          this.labelSound.textContent = s.muted ? 'Без звука' : 'Звук';
+
+          const ambPct = Math.round(s.ambientVolume * 100);
+          const sfxPct = Math.round(s.sfxVolume * 100);
+          this.sliderAmbient.value = String(ambPct);
+          this.valAmbient.textContent = `${ambPct}%`;
+          this.sliderSfx.value = String(sfxPct);
+          this.valSfx.textContent = `${sfxPct}%`;
+
+          this.btnQualityHigh.classList.toggle('active', s.graphicsQuality === 'high');
+          this.btnQualityLow.classList.toggle('active', s.graphicsQuality === 'low');
+        }
+
+        bindEvents() {
+          this.btnSound.addEventListener('click', (e) => {
+            e.currentTarget.blur();
+            this.audio.initOnGesture();
+            this.storage.state.muted = !this.storage.state.muted;
+            this.storage.save();
+            this.audio.syncVolumes();
+            this.syncControlsFromStorage();
+            if (!this.storage.state.muted) {
+              this.audio.playInteractChime(true);
+            }
+          });
+
+          this.btnProjects.addEventListener('click', (e) => {
+            e.currentTarget.blur();
+            this.audio.initOnGesture();
+            if (this.activeModal === 'projects') {
+              this.closeAllModals();
+            } else {
+              this.openProjectsModal();
+            }
+          });
+
+          this.btnSettings.addEventListener('click', (e) => {
+            e.currentTarget.blur();
+            this.audio.initOnGesture();
+            if (this.activeModal === 'settings') {
+              this.closeAllModals();
+            } else {
+              this.openSettingsModal();
+            }
+          });
+
+          this.btnResetQuick.addEventListener('click', (e) => {
+            e.currentTarget.blur();
+            this.audio.initOnGesture();
+            this.onResetSpawn();
+          });
+
+          this.interactBanner.addEventListener('click', (e) => {
+            e.currentTarget.blur();
+            this.audio.initOnGesture();
+            if (this.currentBuilding) {
+              this.openBuildingModal(this.currentBuilding);
+            }
+          });
+
+          // Close buttons & backdrop clicks
+          document.getElementById('btn-close-building').addEventListener('click', () => this.closeAllModals());
+          document.getElementById('btn-close-building-footer').addEventListener('click', () => this.closeAllModals());
+          document.getElementById('btn-close-projects').addEventListener('click', () => this.closeAllModals());
+          document.getElementById('btn-close-projects-footer').addEventListener('click', () => this.closeAllModals());
+          document.getElementById('btn-close-settings').addEventListener('click', () => this.closeAllModals());
+          document.getElementById('btn-close-settings-footer').addEventListener('click', () => this.closeAllModals());
+
+          [this.modalBuildingBackdrop, this.modalProjectsBackdrop, this.modalSettingsBackdrop].forEach((backdrop) => {
+            backdrop.addEventListener('pointerdown', (e) => {
+              if (e.target === backdrop) {
+                this.closeAllModals();
+              }
+            });
+          });
+
+          // Walk-to buttons inside Projects List
+          document.querySelectorAll('[data-walk-to]').forEach((btn) => {
+            btn.addEventListener('click', () => {
+              const id = btn.getAttribute('data-walk-to');
+              const target = BUILDINGS.find((b) => b.id === id);
+              this.closeAllModals();
+              if (target) {
+                this.onWalkToBuilding(target);
+              }
+            });
+          });
+
+          // Settings Sliders
+          this.sliderAmbient.addEventListener('input', () => {
+            this.audio.initOnGesture();
+            const v = Number(this.sliderAmbient.value) / 100;
+            this.storage.state.ambientVolume = v;
+            this.valAmbient.textContent = `${Math.round(v * 100)}%`;
+            this.audio.syncVolumes();
+            this.storage.save();
+          });
+
+          this.sliderSfx.addEventListener('input', () => {
+            this.audio.initOnGesture();
+            const v = Number(this.sliderSfx.value) / 100;
+            this.storage.state.sfxVolume = v;
+            this.valSfx.textContent = `${Math.round(v * 100)}%`;
+            this.audio.syncVolumes();
+            this.storage.save();
+          });
+
+          this.btnQualityHigh.addEventListener('click', () => {
+            this.storage.state.graphicsQuality = 'high';
+            this.storage.save();
+            this.syncControlsFromStorage();
+          });
+
+          this.btnQualityLow.addEventListener('click', () => {
+            this.storage.state.graphicsQuality = 'low';
+            this.storage.save();
+            this.syncControlsFromStorage();
+          });
+
+          this.btnFullscreen.addEventListener('click', () => {
+            if (!document.fullscreenElement) {
+              document.documentElement.requestFullscreen?.().catch(() => {});
+            } else {
+              document.exitFullscreen?.().catch(() => {});
+            }
+          });
+
+          this.btnResetSpawn.addEventListener('click', () => {
+            this.closeAllModals();
+            this.onResetSpawn();
+          });
+        }
+
+        updateProximityBanner(activeBuilding) {
+          const prevId = this.currentBuilding ? this.currentBuilding.id : null;
+          const nextId = activeBuilding ? activeBuilding.id : null;
+          this.currentBuilding = activeBuilding;
+
+          if (activeBuilding && !this.activeModal) {
+            if (prevId !== nextId) {
+              this.interactBuildingTitle.textContent = activeBuilding.title;
+              this.interactBanner.setAttribute('data-building', activeBuilding.id);
+            }
+            this.interactBanner.classList.add('visible');
+          } else {
+            this.interactBanner.classList.remove('visible');
+          }
+        }
+
+        openBuildingModal(b) {
+          this.closeAllModals(false);
+          this.activeModal = 'building';
+          this.input.blockedByModal = true;
+          this.input.clearAllInputs();
+          document.body.dataset.state = 'modal';
+
+          this.modalBuildingCard.setAttribute('data-theme', b.theme);
+          this.buildingModalKicker.textContent = b.kicker;
+          this.buildingModalTitle.textContent = b.displayTitle;
+          this.buildingModalDesc.textContent = b.description;
+          this.buildingLinkSite.href = b.siteUrl;
+          this.buildingLinkGithub.href = b.githubUrl;
+
+          // Bespoke architectural vector banner inside card
+          if (b.id === 'elephantology') {
+            this.buildingModalArt.innerHTML = `
+              <svg width="100%" height="58" viewBox="0 0 420 58" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <rect x="6" y="8" width="110" height="42" rx="6" fill="#F4F1EA" stroke="#2C302E" stroke-width="2"/>
+                <line x1="22" y1="20" x2="100" y2="20" stroke="#2E5A44" stroke-width="3" stroke-linecap="round"/>
+                <line x1="22" y1="30" x2="86" y2="30" stroke="#2C302E" stroke-width="2" stroke-linecap="round"/>
+                <line x1="22" y1="39" x2="72" y2="39" stroke="#6B7D57" stroke-width="2" stroke-linecap="round"/>
+                <circle cx="210" cy="29" r="20" fill="#2E5A44" stroke="#2C302E" stroke-width="2"/>
+                <path d="M203 29h14M210 22v14" stroke="#F4F1EA" stroke-width="2.2" stroke-linecap="round"/>
+                <rect x="304" y="8" width="110" height="42" rx="6" fill="#F4F1EA" stroke="#2C302E" stroke-width="2"/>
+                <rect x="318" y="16" width="22" height="26" rx="2" fill="#2E5A44"/>
+                <rect x="346" y="16" width="22" height="26" rx="2" fill="#6B7D57"/>
+                <rect x="374" y="16" width="22" height="26" rx="2" fill="#9A744C"/>
+              </svg>
+            `;
+          } else {
+            this.buildingModalArt.innerHTML = `
+              <svg width="100%" height="58" viewBox="0 0 420 58" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <rect x="6" y="8" width="124" height="42" rx="6" fill="#C86D51" stroke="#2C302E" stroke-width="2"/>
+                <circle cx="42" cy="29" r="11" fill="#F4F1EA" stroke="#2C302E" stroke-width="2"/>
+                <path d="M66 23h46M66 34h32" stroke="#F4F1EA" stroke-width="2.5" stroke-linecap="round"/>
+                <circle cx="210" cy="29" r="20" fill="#F4F1EA" stroke="#2C302E" stroke-width="2"/>
+                <polygon points="206,21 220,29 206,37" fill="#C86D51"/>
+                <rect x="290" y="8" width="124" height="42" rx="6" fill="#F4F1EA" stroke="#2C302E" stroke-width="2"/>
+                <circle cx="326" cy="29" r="10" fill="#86ADA7" stroke="#2C302E" stroke-width="1.8"/>
+                <circle cx="356" cy="29" r="10" fill="#C86D51" stroke="#2C302E" stroke-width="1.8"/>
+                <circle cx="386" cy="29" r="10" fill="#2E5A44" stroke="#2C302E" stroke-width="1.8"/>
+              </svg>
+            `;
+          }
+
+          this.modalBuildingBackdrop.setAttribute('aria-hidden', 'false');
+          this.modalBuildingBackdrop.classList.add('open');
+          this.interactBanner.classList.remove('visible');
+          this.audio.playInteractChime(true);
+        }
+
+        openProjectsModal() {
+          this.closeAllModals(false);
+          this.activeModal = 'projects';
+          this.input.blockedByModal = true;
+          this.input.clearAllInputs();
+          document.body.dataset.state = 'modal';
+          this.btnProjects.classList.add('active-toggle');
+          this.modalProjectsBackdrop.setAttribute('aria-hidden', 'false');
+          this.modalProjectsBackdrop.classList.add('open');
+          this.interactBanner.classList.remove('visible');
+          this.audio.playInteractChime(true);
+        }
+
+        openSettingsModal() {
+          this.closeAllModals(false);
+          this.activeModal = 'settings';
+          this.input.blockedByModal = true;
+          this.input.clearAllInputs();
+          document.body.dataset.state = 'modal';
+          this.btnSettings.classList.add('active-toggle');
+          this.modalSettingsBackdrop.setAttribute('aria-hidden', 'false');
+          this.modalSettingsBackdrop.classList.add('open');
+          this.interactBanner.classList.remove('visible');
+          this.audio.playInteractChime(true);
+        }
+
+        closeAllModals(playSound = true) {
+          if (!this.activeModal) return;
+          this.activeModal = null;
+          this.input.blockedByModal = false;
+          document.body.dataset.state = 'playing';
+
+          this.modalBuildingBackdrop.classList.remove('open');
+          this.modalProjectsBackdrop.classList.remove('open');
+          this.modalSettingsBackdrop.classList.remove('open');
+          this.modalBuildingBackdrop.setAttribute('aria-hidden', 'true');
+          this.modalProjectsBackdrop.setAttribute('aria-hidden', 'true');
+          this.modalSettingsBackdrop.setAttribute('aria-hidden', 'true');
+          this.btnProjects.classList.remove('active-toggle');
+          this.btnSettings.classList.remove('active-toggle');
+
+          if (playSound) {
+            this.audio.playInteractChime(false);
+          }
+        }
+      }
+
+      /* =========================================================================
+       * 12. MAIN GAME APPLICATION CONTROLLER
+       * ========================================================================= */
+      class Game {
+        constructor() {
+          this.canvas = document.getElementById('game-canvas');
+          this.ctx = this.canvas.getContext('2d', { alpha: false });
+
+          this.storage = new StorageManager();
+          this.audio = new AudioManager(this.storage);
+          this.collisionSystem = new CollisionSystem();
+
+          // Ensure loaded player position does not collide
+          const safeStart = this.collisionSystem.resolve(
+            this.storage.state.playerX,
+            this.storage.state.playerY,
+            17
+          );
+          this.player = new Player(safeStart.x, safeStart.y);
+          this.dog = new DogCompanion(safeStart.x - 42, safeStart.y + 24);
+          this.camera = new Camera(this.player.x, this.player.y);
+          this.worldRenderer = new WorldRenderer();
+
+          this.activeBuilding = null;
+          this.savePositionTimer = 0;
+          this.lastTimestamp = performance.now();
+          this.isTabHidden = false;
+
+          const joystickZone = document.getElementById('joystick-zone');
+          const joystickKnob = document.getElementById('joystick-knob');
+
+          this.input = new InputManager(
+            this.canvas,
+            joystickZone,
+            joystickKnob,
+            () => {
+              if (this.activeBuilding && !this.ui.activeModal) {
+                this.ui.openBuildingModal(this.activeBuilding);
+              }
+            },
+            () => {
+              if (this.ui.activeModal) {
+                this.ui.closeAllModals();
+              }
+            },
+            () => {
+              this.audio.initOnGesture();
+            }
+          );
+
+          this.ui = new UIManager(
+            this.storage,
+            this.audio,
+            this.input,
+            () => this.resetPlayerToSpawn(),
+            (building) => this.walkPlayerToBuilding(building)
+          );
+
+          this.bindCanvasPointer();
+          this.handleResize();
+          window.addEventListener('resize', () => this.handleResize());
+          window.addEventListener('orientationchange', () => setTimeout(() => this.handleResize(), 120));
+
+          document.addEventListener('visibilitychange', () => {
+            this.isTabHidden = document.hidden;
+            if (!this.isTabHidden) {
+              this.lastTimestamp = performance.now();
+            }
+          });
+
+          requestAnimationFrame((ts) => this.loop(ts));
+        }
+
+        bindCanvasPointer() {
+          this.canvas.addEventListener('pointerdown', (e) => {
+            this.audio.initOnGesture();
+            if (this.ui.activeModal) return;
+            if (e.button !== undefined && e.button !== 0) return;
+
+            const rect = this.canvas.getBoundingClientRect();
+            const worldPt = this.camera.screenToWorld(e.clientX, e.clientY, rect);
+
+            // Check if user clicked/tapped directly on one of the two project buildings or its entrance porch
+            let clickedBuilding = null;
+            for (const b of BUILDINGS) {
+              const inBody =
+                worldPt.x >= b.x - 12 &&
+                worldPt.x <= b.x + b.w + 12 &&
+                worldPt.y >= b.y - 12 &&
+                worldPt.y <= b.y + b.h + 55;
+              const inDoor = Math.hypot(worldPt.x - b.doorX, worldPt.y - b.doorY) <= b.interactRadius;
+              if (inBody || inDoor) {
+                clickedBuilding = b;
+                break;
+              }
+            }
+
+            if (clickedBuilding) {
+              const distToDoor = Math.hypot(this.player.x - clickedBuilding.doorX, this.player.y - clickedBuilding.doorY);
+              if (distToDoor <= clickedBuilding.interactRadius) {
+                this.ui.openBuildingModal(clickedBuilding);
+              } else {
+                this.walkPlayerToBuilding(clickedBuilding);
+              }
+              return;
+            }
+
+            // Otherwise walk to the clicked world point
+            const clampedX = Math.max(75, Math.min(WORLD_W - 75, worldPt.x));
+            const clampedY = Math.max(75, Math.min(WORLD_H - 75, worldPt.y));
+            this.input.pointerTarget = {
+              x: clampedX,
+              y: clampedY,
+              building: null
+            };
+          });
+        }
+
+        walkPlayerToBuilding(building) {
+          const waypoints = [];
+          // Route smoothly via the building's forecourt avenue if coming from across the plaza
+          if (Math.abs(this.player.x - building.doorX) > 220) {
+            waypoints.push({ x: building.doorX, y: 860 });
+          }
+          this.input.pointerTarget = {
+            x: building.doorX,
+            y: building.doorY + 6,
+            waypoints: waypoints,
+            building: building
+          };
+        }
+
+        resetPlayerToSpawn() {
+          this.input.pointerTarget = null;
+          this.player.x = SPAWN_X;
+          this.player.y = SPAWN_Y;
+          this.player.vx = 0;
+          this.player.vy = 0;
+          this.player.angle = -Math.PI / 2;
+
+          this.dog.x = SPAWN_X - 42;
+          this.dog.y = SPAWN_Y + 24;
+          this.dog.vx = 0;
+          this.dog.vy = 0;
+          this.dog.state = 'idle';
+
+          this.storage.state.playerX = SPAWN_X;
+          this.storage.state.playerY = SPAWN_Y;
+          this.storage.save();
+          this.audio.playInteractChime(true);
+        }
+
+        handleResize() {
+          const vw = window.innerWidth;
+          const vh = window.innerHeight;
+          const maxDpr = this.storage.state.graphicsQuality === 'high' ? 2 : 1.25;
+          const dpr = Math.min(window.devicePixelRatio || 1, maxDpr);
+
+          this.canvas.width = Math.round(vw * dpr);
+          this.canvas.height = Math.round(vh * dpr);
+          this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+          this.camera.resize(vw, vh);
+          this.render();
+        }
+
+        findProximityBuilding() {
+          let best = null;
+          let bestDist = Infinity;
+          for (const b of BUILDINGS) {
+            const d = Math.hypot(this.player.x - b.doorX, this.player.y - b.doorY);
+            if (d <= b.interactRadius && d < bestDist) {
+              bestDist = d;
+              best = b;
+            }
+          }
+          return best;
+        }
+
+        update(dt) {
+          const quality = this.storage.state.graphicsQuality;
+
+          this.player.update(
+            dt,
+            this.input,
+            this.collisionSystem,
+            this.audio,
+            (building) => {
+              this.ui.openBuildingModal(building);
+            }
+          );
+
+          this.dog.update(dt, this.player, this.collisionSystem, this.worldRenderer.birds);
+          this.camera.update(this.player.x, this.player.y, dt);
+          this.worldRenderer.update(dt, quality);
+          this.audio.update(dt, this.isTabHidden);
+
+          this.activeBuilding = this.findProximityBuilding();
+          this.ui.updateProximityBanner(this.activeBuilding);
+
+          // Periodically persist player position in localStorage
+          this.savePositionTimer += dt;
+          if (this.savePositionTimer >= 1.5) {
+            this.savePositionTimer = 0;
+            this.storage.state.playerX = Math.round(this.player.x);
+            this.storage.state.playerY = Math.round(this.player.y);
+            this.storage.save();
+          }
+        }
+
+        render() {
+          this.worldRenderer.drawWorld(
+            this.ctx,
+            this.camera,
+            this.player,
+            this.dog,
+            this.activeBuilding,
+            this.input,
+            this.storage.state.graphicsQuality
+          );
+        }
+
+        loop(timestamp) {
+          const isModalOpen = Boolean(this.ui && this.ui.activeModal);
+          if (!this.isTabHidden && !isModalOpen) {
+            const rawDt = (timestamp - this.lastTimestamp) / 1000;
+            this.lastTimestamp = timestamp;
+            const dt = Math.min(Math.max(rawDt, 0.001), 0.05);
+
+            this.update(dt);
+            this.render();
+          } else {
+            this.lastTimestamp = timestamp;
+          }
+
+          const isMoving =
+            Math.hypot(this.player.vx, this.player.vy) > 5 ||
+            Boolean(this.input.pointerTarget) ||
+            this.input.keys.size > 0 ||
+            this.input.joyActive;
+          const nextDelay = isModalOpen ? 100 : isMoving ? 14 : 36;
+
+          setTimeout(() => {
+            requestAnimationFrame((ts) => this.loop(ts));
+          }, nextDelay);
+        }
+      }
+
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', () => new Game());
+      } else {
+        new Game();
+      }
+    })();
+  </script>
+</body>
+</html>
