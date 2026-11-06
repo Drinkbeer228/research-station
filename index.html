@@ -4,9 +4,9 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <title>Elephant Research Station — Интерактивный кампус проектов</title>
-  <meta name="description" content="Интерактивная научно-исследовательская станция и кампус проектов Elephantology и Elephantorina." />
+  <meta name="description" content="Интерактивная научно-исследовательская станция и кампус проектов Elephantology, Elephantorina и симулятора смотрителя Elephant Keeper." />
   <meta property="og:title" content="Elephant Research Station" />
-  <meta property="og:description" content="Интерактивная научно-исследовательская станция и кампус проектов Elephantology и Elephantorina." />
+  <meta property="og:description" content="Интерактивная научно-исследовательская станция и кампус проектов Elephantology, Elephantorina и симулятора смотрителя Elephant Keeper." />
   <meta property="og:type" content="website" />
   <meta name="twitter:card" content="summary_large_image" />
   <style>
@@ -22,6 +22,9 @@
       --terracotta: #C86D51;
       --terracotta-hover: #B25B40;
       --terracotta-soft: rgba(200, 109, 81, 0.14);
+      --keeper-ochre: #A96B3B;
+      --keeper-ochre-hover: #8F582E;
+      --keeper-soft: rgba(169, 107, 59, 0.14);
       --surface-card: rgba(244, 241, 234, 0.96);
       --surface-hud: rgba(244, 241, 234, 0.92);
       --shadow-soft: 0 12px 32px rgba(44, 48, 46, 0.14), 0 2px 6px rgba(44, 48, 46, 0.08);
@@ -217,6 +220,10 @@
       background: var(--terracotta);
     }
 
+    .interact-banner[data-building="elephantkeeper"] .interact-key {
+      background: var(--keeper-ochre);
+    }
+
     .interact-label-group {
       display: flex;
       flex-direction: column;
@@ -393,6 +400,10 @@
       color: var(--terracotta);
     }
 
+    .modal-card[data-theme="keeper"] .modal-kicker {
+      color: var(--keeper-ochre);
+    }
+
     .modal-title {
       font-size: 24px;
       font-weight: 700;
@@ -439,6 +450,10 @@
 
     .modal-card[data-theme="terracotta"] .modal-illustration {
       background: var(--terracotta-soft);
+    }
+
+    .modal-card[data-theme="keeper"] .modal-illustration {
+      background: var(--keeper-soft);
     }
 
     .modal-desc {
@@ -490,6 +505,14 @@
 
     .modal-card[data-theme="terracotta"] .btn-primary:hover {
       background: var(--terracotta-hover);
+    }
+
+    .modal-card[data-theme="keeper"] .btn-primary {
+      background: var(--keeper-ochre);
+    }
+
+    .modal-card[data-theme="keeper"] .btn-primary:hover {
+      background: var(--keeper-ochre-hover);
     }
 
     .btn-secondary {
@@ -553,6 +576,10 @@
 
     .project-list-item[data-project="elephantorina"] .project-wing-tag {
       color: var(--terracotta);
+    }
+
+    .project-list-item[data-project="elephantkeeper"] .project-wing-tag {
+      color: var(--keeper-ochre);
     }
 
     .project-list-desc {
@@ -819,7 +846,7 @@
             <polyline points="15 3 21 3 21 9"/>
             <line x1="10" y1="14" x2="21" y2="3"/>
           </svg>
-          <span>Открыть сайт</span>
+          <span id="building-link-site-label">Открыть сайт</span>
         </a>
 
         <a id="building-link-github" href="https://github.com/Drinkbeer228/elephantology" target="_blank" rel="noopener noreferrer" class="btn-secondary">
@@ -877,6 +904,21 @@
             <a href="https://drinkbeer228.github.io/elephantorina/" target="_blank" rel="noopener noreferrer" class="btn-primary" style="background: var(--terracotta);">Открыть сайт</a>
             <a href="https://github.com/Drinkbeer228/elephantorina" target="_blank" rel="noopener noreferrer" class="btn-secondary">GitHub</a>
             <button type="button" class="btn-ghost" data-walk-to="elephantorina">Подойти ко входу</button>
+          </div>
+        </div>
+
+        <div class="project-list-item" data-project="elephantkeeper">
+          <div class="project-list-top">
+            <span class="project-list-name">Elephant Keeper</span>
+            <span class="project-wing-tag">Южный комплекс · Слоновник и тренажёр</span>
+          </div>
+          <p class="project-list-desc">
+            Практический симулятор смены смотрителя слоновника: защищённый контакт, рационы SlonVet, уход, уборка и работа с доверием слоних.
+          </p>
+          <div class="project-list-links">
+            <a href="https://drinkbeer228.github.io/Elephant-keeper-/" target="_blank" rel="noopener noreferrer" class="btn-primary" style="background: var(--keeper-ochre);">Открыть симулятор</a>
+            <a href="https://github.com/Drinkbeer228/Elephant-keeper-" target="_blank" rel="noopener noreferrer" class="btn-secondary">GitHub</a>
+            <button type="button" class="btn-ghost" data-walk-to="elephantkeeper">Подойти ко входу</button>
           </div>
         </div>
       </div>
@@ -952,10 +994,10 @@
        * 1. CONSTANTS, PALETTE & STATION ARCHITECTURAL DATA
        * ========================================================================= */
       const WORLD_W = 2400;
-      const WORLD_H = 1720;
+      const WORLD_H = 1860;
       const SPAWN_X = 1200;
-      const SPAWN_Y = 895;
-      const STORAGE_KEY = 'elephant_research_station_v2';
+      const SPAWN_Y = 855;
+      const STORAGE_KEY = 'elephant_research_station_v3';
 
       const PALETTE = {
         sandGround: '#E8E4DA',
@@ -970,6 +1012,10 @@
         sageMuted: '#8FA696',
         terracotta: '#C86D51',
         terracottaLight: '#DC876C',
+        keeper: '#A96B3B',
+        keeperLight: '#C68958',
+        straw: '#E4CF9C',
+        strawDark: '#C9B076',
         olive: '#6B7D57',
         grassPatchA: '#CDD4C0',
         grassPatchB: '#BFC9B0',
@@ -989,15 +1035,16 @@
           kicker: 'Научная библиотека и исследовательский центр',
           theme: 'sage',
           accent: PALETTE.sage,
+          siteLabel: 'Открыть сайт',
           description: '«Академическая база знаний о семействе Elephantidae. Биология, этология, ветеринария, содержание и научные исследования».',
           siteUrl: 'https://drinkbeer228.github.io/elephantology/',
           githubUrl: 'https://github.com/Drinkbeer228/elephantology',
-          x: 500,
-          y: 515,
+          x: 480,
+          y: 495,
           w: 390,
           h: 245,
-          doorX: 695,
-          doorY: 788,
+          doorX: 675,
+          doorY: 768,
           interactRadius: 96
         },
         {
@@ -1007,23 +1054,66 @@
           kicker: 'Интерактивный образовательный центр',
           theme: 'terracotta',
           accent: PALETTE.terracotta,
+          siteLabel: 'Открыть сайт',
           description: '«Интерактивная образовательная платформа для изучения слонов. Обучение, викторины и интеллектуальные тренажёры».',
           siteUrl: 'https://drinkbeer228.github.io/elephantorina/',
           githubUrl: 'https://github.com/Drinkbeer228/elephantorina',
-          x: 1510,
-          y: 515,
+          x: 1530,
+          y: 495,
           w: 390,
           h: 245,
-          doorX: 1705,
-          doorY: 788,
+          doorX: 1725,
+          doorY: 768,
           interactRadius: 96
+        },
+        {
+          id: 'elephantkeeper',
+          title: 'ELEPHANT KEEPER',
+          displayTitle: 'Elephant Keeper',
+          kicker: 'Слоновник и симулятор смены смотрителя',
+          theme: 'keeper',
+          accent: PALETTE.keeper,
+          siteLabel: 'Открыть симулятор',
+          description: '«Практический симулятор смены смотрителя слоновника. Защищённый контакт, кормление и рационы SlonVet, уход за кожей, уборка стойл и выгула, чтение сигналов слоних с собственным характером и работа с доверием».',
+          siteUrl: 'https://drinkbeer228.github.io/Elephant-keeper-/',
+          githubUrl: 'https://github.com/Drinkbeer228/Elephant-keeper-',
+          x: 780,
+          y: 1115,
+          w: 420,
+          h: 245,
+          doorX: 990,
+          doorY: 1388,
+          interactRadius: 98,
+          secondaryDoors: [
+            { x: 990, y: 1090, interactRadius: 98 }
+          ]
         }
       ];
+
+      // Adjoining Outdoor Elephant Paddock (connected to the East side of Elephant Keeper Barn)
+      const ELEPHANT_PADDOCK = {
+        x: 1200,
+        y: 1122,
+        w: 430,
+        h: 232,
+        poolX: 1485,
+        poolY: 1218,
+        poolRx: 66,
+        poolRy: 42
+      };
+
+      // Keeper Service Yard on West side of Barn (hay bales, wheelbarrow, hose reel)
+      const KEEPER_YARD = {
+        x: 716,
+        y: 1185,
+        w: 64,
+        h: 92
+      };
 
       // Decorative Botanical Conservatory (Greenhouse) - strictly decorative
       const GREENHOUSE = {
         x: 1035,
-        y: 220,
+        y: 205,
         w: 330,
         h: 185
       };
@@ -1044,53 +1134,58 @@
 
       // Soft organic lawn meadows
       const MEADOW_PATCHES = [
-        { x: 640, y: 620, rx: 320, ry: 230, rot: -0.12, color: PALETTE.grassPatchA },
-        { x: 1760, y: 620, rx: 320, ry: 230, rot: 0.12, color: PALETTE.grassPatchA },
-        { x: 1200, y: 330, rx: 310, ry: 200, rot: 0.0, color: PALETTE.grassPatchB },
-        { x: 520, y: 1180, rx: 280, ry: 195, rot: 0.22, color: PALETTE.grassPatchB },
-        { x: 1880, y: 1180, rx: 280, ry: 195, rot: -0.2, color: PALETTE.grassPatchA },
-        { x: 1200, y: 1380, rx: 380, ry: 155, rot: 0.04, color: PALETTE.grassPatchA },
-        { x: 960, y: 680, rx: 145, ry: 105, rot: -0.25, color: PALETTE.grassPatchB },
-        { x: 1440, y: 680, rx: 145, ry: 105, rot: 0.25, color: PALETTE.grassPatchB }
+        { x: 640, y: 600, rx: 320, ry: 230, rot: -0.12, color: PALETTE.grassPatchA },
+        { x: 1760, y: 600, rx: 320, ry: 230, rot: 0.12, color: PALETTE.grassPatchA },
+        { x: 1200, y: 315, rx: 310, ry: 200, rot: 0.0, color: PALETTE.grassPatchB },
+        { x: 460, y: 1210, rx: 240, ry: 195, rot: 0.22, color: PALETTE.grassPatchB },
+        { x: 1940, y: 1210, rx: 240, ry: 195, rot: -0.2, color: PALETTE.grassPatchA },
+        { x: 1200, y: 1540, rx: 420, ry: 155, rot: 0.04, color: PALETTE.grassPatchA },
+        { x: 960, y: 660, rx: 145, ry: 105, rot: -0.25, color: PALETTE.grassPatchB },
+        { x: 1440, y: 660, rx: 145, ry: 105, rot: 0.25, color: PALETTE.grassPatchB }
       ];
 
       // Designed stone benches (placed outside main walking lanes)
       const BENCHES = [
-        { x: 1015, y: 785, w: 66, h: 22, angle: 0, label: 'bench' },
-        { x: 1319, y: 785, w: 66, h: 22, angle: 0, label: 'bench' },
-        { x: 1015, y: 1070, w: 66, h: 22, angle: 0, label: 'bench' },
-        { x: 1319, y: 1070, w: 66, h: 22, angle: 0, label: 'bench' },
-        { x: 465, y: 845, w: 64, h: 22, angle: 0, label: 'bench' },
-        { x: 1871, y: 845, w: 64, h: 22, angle: 0, label: 'bench' }
+        { x: 1015, y: 745, w: 66, h: 22, angle: 0, label: 'bench' },
+        { x: 1319, y: 745, w: 66, h: 22, angle: 0, label: 'bench' },
+        { x: 1405, y: 1472, w: 66, h: 22, angle: 0, label: 'bench' },
+        { x: 1505, y: 1472, w: 66, h: 22, angle: 0, label: 'bench' },
+        { x: 445, y: 805, w: 64, h: 22, angle: 0, label: 'bench' },
+        { x: 1891, y: 805, w: 64, h: 22, angle: 0, label: 'bench' }
       ];
 
       // Raised botanical flowerbeds / planters
       const PLANTERS = [
-        { x: 420, y: 775, w: 110, h: 42, accent: PALETTE.sage },
-        { x: 860, y: 775, w: 110, h: 42, accent: PALETTE.sage },
-        { x: 1430, y: 775, w: 110, h: 42, accent: PALETTE.terracotta },
-        { x: 1870, y: 775, w: 110, h: 42, accent: PALETTE.terracotta },
-        { x: 970, y: 435, w: 95, h: 38, accent: PALETTE.olive },
-        { x: 1335, y: 435, w: 95, h: 38, accent: PALETTE.olive }
+        { x: 400, y: 735, w: 110, h: 42, accent: PALETTE.sage },
+        { x: 840, y: 735, w: 110, h: 42, accent: PALETTE.sage },
+        { x: 1450, y: 735, w: 110, h: 42, accent: PALETTE.terracotta },
+        { x: 1890, y: 735, w: 110, h: 42, accent: PALETTE.terracotta },
+        { x: 970, y: 420, w: 95, h: 38, accent: PALETTE.olive },
+        { x: 1335, y: 420, w: 95, h: 38, accent: PALETTE.olive },
+        { x: 765, y: 1465, w: 105, h: 40, accent: PALETTE.keeper },
+        { x: 1265, y: 1465, w: 105, h: 40, accent: PALETTE.keeper }
       ];
 
       // Directional signposts
       const SIGNPOSTS = [
-        { x: 1085, y: 875, text: '← ELEPHANTOLOGY' },
-        { x: 1315, y: 875, text: 'ELEPHANTORINA →' },
-        { x: 1140, y: 760, text: '↑ ОРАНЖЕРЕЯ' },
-        { x: 1260, y: 1065, text: '↓ ЮЖНЫЕ ВОРОТА' }
+        { x: 1075, y: 835, text: '← ELEPHANTOLOGY' },
+        { x: 1325, y: 835, text: 'ELEPHANTORINA →' },
+        { x: 1140, y: 720, text: '↑ ОРАНЖЕРЕЯ' },
+        { x: 1110, y: 1015, text: '↓ ELEPHANT KEEPER' },
+        { x: 1365, y: 1065, text: 'ВЫГУЛ СЛОНОВ →' }
       ];
 
       // Architectural pathway bollard lanterns
       const LANTERNS = [
-        { x: 635, y: 805 }, { x: 755, y: 805 },
-        { x: 1645, y: 805 }, { x: 1765, y: 805 },
-        { x: 1095, y: 810 }, { x: 1305, y: 810 },
-        { x: 1095, y: 1045 }, { x: 1305, y: 1045 },
-        { x: 920, y: 870 }, { x: 1480, y: 870 },
-        { x: 1140, y: 445 }, { x: 1260, y: 445 },
-        { x: 1135, y: 1290 }, { x: 1265, y: 1290 }
+        { x: 615, y: 785 }, { x: 735, y: 785 },
+        { x: 1665, y: 785 }, { x: 1785, y: 785 },
+        { x: 1095, y: 775 }, { x: 1305, y: 775 },
+        { x: 920, y: 1085 }, { x: 1060, y: 1085 },
+        { x: 920, y: 1395 }, { x: 1060, y: 1395 },
+        { x: 920, y: 835 }, { x: 1480, y: 835 },
+        { x: 1140, y: 430 }, { x: 1260, y: 430 },
+        { x: 620, y: 1220 }, { x: 1780, y: 1220 },
+        { x: 1135, y: 1525 }, { x: 1265, y: 1525 }
       ];
 
       // Natural boulders & rock clusters
@@ -1101,12 +1196,12 @@
         { x: 1505, y: 390, r: 25, variant: 0 },
         { x: 2080, y: 495, r: 30, variant: 1 },
         { x: 2050, y: 525, r: 19, variant: 2 },
-        { x: 740, y: 1170, r: 32, variant: 0 },
-        { x: 780, y: 1190, r: 20, variant: 1 },
-        { x: 1650, y: 1175, r: 30, variant: 2 },
-        { x: 1615, y: 1195, r: 18, variant: 0 },
-        { x: 960, y: 270, r: 24, variant: 1 },
-        { x: 1440, y: 270, r: 24, variant: 2 }
+        { x: 470, y: 1330, r: 32, variant: 0 },
+        { x: 510, y: 1350, r: 20, variant: 1 },
+        { x: 1920, y: 1330, r: 30, variant: 2 },
+        { x: 1885, y: 1350, r: 18, variant: 0 },
+        { x: 960, y: 255, r: 24, variant: 1 },
+        { x: 1440, y: 255, r: 24, variant: 2 }
       ];
 
       // Curated specimen trees & shrubs
@@ -1114,44 +1209,44 @@
         // West Wing grove
         { x: 260, y: 340, r: 52, trunkR: 14, kind: 'acacia', phase: 0.2 },
         { x: 240, y: 620, r: 46, trunkR: 13, kind: 'olive', phase: 1.1 },
-        { x: 320, y: 840, r: 48, trunkR: 13, kind: 'sage', phase: 2.0 },
+        { x: 310, y: 840, r: 48, trunkR: 13, kind: 'sage', phase: 2.0 },
         { x: 910, y: 310, r: 44, trunkR: 12, kind: 'olive', phase: 0.7 },
-        { x: 915, y: 580, r: 38, trunkR: 11, kind: 'sage', phase: 1.9 },
+        { x: 915, y: 560, r: 38, trunkR: 11, kind: 'sage', phase: 1.9 },
         // East Wing grove
         { x: 2140, y: 340, r: 52, trunkR: 14, kind: 'acacia', phase: 1.4 },
         { x: 2160, y: 620, r: 46, trunkR: 13, kind: 'olive', phase: 2.6 },
-        { x: 2080, y: 840, r: 48, trunkR: 13, kind: 'sage', phase: 0.4 },
+        { x: 2090, y: 840, r: 48, trunkR: 13, kind: 'sage', phase: 0.4 },
         { x: 1490, y: 310, r: 44, trunkR: 12, kind: 'olive', phase: 2.2 },
-        { x: 1485, y: 580, r: 38, trunkR: 11, kind: 'sage', phase: 0.9 },
+        { x: 1485, y: 560, r: 38, trunkR: 11, kind: 'sage', phase: 0.9 },
         // North Conservatory framing
-        { x: 890, y: 190, r: 50, trunkR: 14, kind: 'acacia', phase: 1.5 },
-        { x: 1510, y: 190, r: 50, trunkR: 14, kind: 'acacia', phase: 2.8 },
-        { x: 1200, y: 145, r: 44, trunkR: 12, kind: 'sage', phase: 0.3 },
-        // Plaza & South Parkland
-        { x: 830, y: 1030, r: 48, trunkR: 13, kind: 'acacia', phase: 1.0 },
-        { x: 1570, y: 1030, r: 48, trunkR: 13, kind: 'acacia', phase: 2.4 },
-        { x: 540, y: 1120, r: 54, trunkR: 15, kind: 'olive', phase: 0.6 },
-        { x: 1860, y: 1120, r: 54, trunkR: 15, kind: 'olive', phase: 1.7 },
-        { x: 640, y: 1360, r: 46, trunkR: 13, kind: 'sage', phase: 2.9 },
-        { x: 1760, y: 1360, r: 46, trunkR: 13, kind: 'sage', phase: 1.2 },
-        { x: 980, y: 1390, r: 42, trunkR: 12, kind: 'olive', phase: 0.8 },
-        { x: 1420, y: 1390, r: 42, trunkR: 12, kind: 'olive', phase: 2.1 },
-        { x: 350, y: 1290, r: 50, trunkR: 14, kind: 'acacia', phase: 1.8 },
-        { x: 2050, y: 1290, r: 50, trunkR: 14, kind: 'acacia', phase: 0.5 }
+        { x: 890, y: 180, r: 50, trunkR: 14, kind: 'acacia', phase: 1.5 },
+        { x: 1510, y: 180, r: 50, trunkR: 14, kind: 'acacia', phase: 2.8 },
+        { x: 1200, y: 135, r: 44, trunkR: 12, kind: 'sage', phase: 0.3 },
+        // Elephant Keeper & Paddock framing + South Parkland
+        { x: 825, y: 1015, r: 42, trunkR: 12, kind: 'acacia', phase: 1.0 },
+        { x: 1605, y: 1125, r: 46, trunkR: 12, kind: 'acacia', phase: 2.4 },
+        { x: 460, y: 1120, r: 54, trunkR: 15, kind: 'olive', phase: 0.6 },
+        { x: 1940, y: 1120, r: 54, trunkR: 15, kind: 'olive', phase: 1.7 },
+        { x: 540, y: 1490, r: 46, trunkR: 13, kind: 'sage', phase: 2.9 },
+        { x: 1860, y: 1490, r: 46, trunkR: 13, kind: 'sage', phase: 1.2 },
+        { x: 920, y: 1585, r: 44, trunkR: 12, kind: 'olive', phase: 0.8 },
+        { x: 1480, y: 1585, r: 44, trunkR: 12, kind: 'olive', phase: 2.1 },
+        { x: 330, y: 1380, r: 50, trunkR: 14, kind: 'acacia', phase: 1.8 },
+        { x: 2070, y: 1380, r: 50, trunkR: 14, kind: 'acacia', phase: 0.5 }
       ];
 
-      // Decorative low shrubs (non-blocking or small radius)
+      // Decorative low shrubs (non-blocking)
       const SHRUBS = [
         { x: 380, y: 340, r: 20, color: PALETTE.sage },
         { x: 850, y: 345, r: 18, color: PALETTE.olive },
         { x: 1550, y: 345, r: 18, color: PALETTE.olive },
         { x: 2020, y: 340, r: 20, color: PALETTE.sage },
-        { x: 1005, y: 240, r: 19, color: PALETTE.sageLight },
-        { x: 1395, y: 240, r: 19, color: PALETTE.sageLight },
-        { x: 960, y: 840, r: 17, color: PALETTE.olive },
-        { x: 1440, y: 840, r: 17, color: PALETTE.olive },
-        { x: 930, y: 1140, r: 19, color: PALETTE.sage },
-        { x: 1470, y: 1140, r: 19, color: PALETTE.sage },
+        { x: 1005, y: 225, r: 19, color: PALETTE.sageLight },
+        { x: 1395, y: 225, r: 19, color: PALETTE.sageLight },
+        { x: 960, y: 800, r: 17, color: PALETTE.olive },
+        { x: 1440, y: 800, r: 17, color: PALETTE.olive },
+        { x: 735, y: 1105, r: 18, color: PALETTE.sage },
+        { x: 1655, y: 1350, r: 19, color: PALETTE.sage },
         { x: 520, y: 920, r: 21, color: PALETTE.olive },
         { x: 1880, y: 920, r: 21, color: PALETTE.olive }
       ];
@@ -1162,25 +1257,31 @@
 
       function isPointOnPathOrPlaza(px, py) {
         // Central plaza circle
-        if (Math.hypot(px - 1200, py - 920) < 195) return true;
+        if (Math.hypot(px - 1200, py - 880) < 195) return true;
         // West forecourt
-        if (px > 560 && px < 830 && py > 750 && py < 910) return true;
+        if (px > 540 && px < 810 && py > 730 && py < 890) return true;
         // East forecourt
-        if (px > 1570 && px < 1840 && py > 750 && py < 910) return true;
+        if (px > 1590 && px < 1860 && py > 730 && py < 890) return true;
         // North conservatory promenade
-        if (px > 1130 && px < 1270 && py > 400 && py < 920) return true;
-        // South arrival promenade
-        if (px > 1130 && px < 1270 && py > 920 && py < 1490) return true;
+        if (px > 1130 && px < 1270 && py > 380 && py < 880) return true;
+        // North Keeper Barn approach from Central Plaza
+        if (px > 920 && px < 1230 && py > 880 && py < 1125) return true;
+        // West & East Southern Keeper Loop + South Paddock Viewing Walk
+        if (px > 600 && px < 725 && py > 810 && py < 1465) return true;
+        if (px > 1675 && px < 1800 && py > 810 && py < 1465) return true;
+        if (px > 630 && px < 1770 && py > 1365 && py < 1470) return true;
+        // South gate promenade
+        if (px > 1130 && px < 1270 && py > 1400 && py < 1660) return true;
         // West-to-Plaza curving avenue
-        if (px > 660 && px < 1210 && py > 770 && py < 980) {
-          const t = (px - 695) / (1200 - 695);
-          const curveY = 815 + t * 105 + Math.sin(t * Math.PI) * 35;
+        if (px > 650 && px < 1210 && py > 750 && py < 950) {
+          const t = (px - 675) / (1200 - 675);
+          const curveY = 795 + t * 85 + Math.sin(t * Math.PI) * 32;
           if (Math.abs(py - curveY) < 58) return true;
         }
         // East-to-Plaza curving avenue
-        if (px > 1190 && px < 1740 && py > 770 && py < 980) {
-          const t = (1705 - px) / (1705 - 1200);
-          const curveY = 815 + t * 105 + Math.sin(t * Math.PI) * 35;
+        if (px > 1190 && px < 1750 && py > 750 && py < 950) {
+          const t = (1725 - px) / (1725 - 1200);
+          const curveY = 795 + t * 85 + Math.sin(t * Math.PI) * 32;
           if (Math.abs(py - curveY) < 58) return true;
         }
         return false;
@@ -1188,7 +1289,23 @@
 
       function isPointInsideStructure(px, py) {
         for (const b of BUILDINGS) {
-          if (px > b.x - 30 && px < b.x + b.w + 30 && py > b.y - 30 && py < b.y + b.h + 45) return true;
+          if (px > b.x - 35 && px < b.x + b.w + 35 && py > b.y - 45 && py < b.y + b.h + 50) return true;
+        }
+        if (
+          px > ELEPHANT_PADDOCK.x - 25 &&
+          px < ELEPHANT_PADDOCK.x + ELEPHANT_PADDOCK.w + 30 &&
+          py > ELEPHANT_PADDOCK.y - 25 &&
+          py < ELEPHANT_PADDOCK.y + ELEPHANT_PADDOCK.h + 35
+        ) {
+          return true;
+        }
+        if (
+          px > KEEPER_YARD.x - 20 &&
+          px < KEEPER_YARD.x + KEEPER_YARD.w + 20 &&
+          py > KEEPER_YARD.y - 20 &&
+          py < KEEPER_YARD.y + KEEPER_YARD.h + 20
+        ) {
+          return true;
         }
         if (
           px > GREENHOUSE.x - 25 &&
@@ -1201,7 +1318,7 @@
         return false;
       }
 
-      for (let i = 0; i < 360; i++) {
+      for (let i = 0; i < 380; i++) {
         const gx = 120 + rand() * (WORLD_W - 240);
         const gy = 120 + rand() * (WORLD_H - 240);
         if (!isPointInsideStructure(gx, gy) && !isPointOnPathOrPlaza(gx, gy)) {
@@ -1216,7 +1333,7 @@
         }
       }
 
-      for (let i = 0; i < 220; i++) {
+      for (let i = 0; i < 240; i++) {
         const px = 100 + rand() * (WORLD_W - 200);
         const py = 100 + rand() * (WORLD_H - 200);
         if (!isPointInsideStructure(px, py)) {
@@ -1239,7 +1356,7 @@
         }
 
         buildStaticColliders() {
-          // Two main project buildings
+          // Project buildings (Elephantology, Elephantorina, Elephant Keeper Barn)
           for (const b of BUILDINGS) {
             this.colliders.push({
               type: 'rect',
@@ -1249,6 +1366,24 @@
               h: b.h
             });
           }
+
+          // Outdoor Elephant Paddock enclosure
+          this.colliders.push({
+            type: 'rect',
+            x: ELEPHANT_PADDOCK.x,
+            y: ELEPHANT_PADDOCK.y,
+            w: ELEPHANT_PADDOCK.w,
+            h: ELEPHANT_PADDOCK.h
+          });
+
+          // Keeper Service Yard hay stack pad
+          this.colliders.push({
+            type: 'rect',
+            x: KEEPER_YARD.x,
+            y: KEEPER_YARD.y,
+            w: KEEPER_YARD.w,
+            h: KEEPER_YARD.h
+          });
 
           // Decorative Greenhouse
           this.colliders.push({
@@ -2096,7 +2231,7 @@
             }
           }
 
-          // Curious head turns when looking around or watching birds/player
+          // Curious head turns when looking around or watching birds/elephants/player
           if (this.state === 'look_around') {
             if (Math.floor(this.stateTimer * 1.5) % 2 === 0) {
               this.targetHeadOffset = 0.52;
@@ -2104,9 +2239,18 @@
               this.targetHeadOffset = -0.52;
             }
           } else if (this.state === 'sit' || this.state === 'idle') {
-            // Glance toward player or passing bird
-            let glancedBird = false;
-            if (birds && birds.length > 0) {
+            // Glance toward nearby elephants in paddock or passing birds
+            let glancedTarget = false;
+            const paddockCenterX = 1410;
+            const paddockCenterY = 1235;
+            if (Math.hypot(paddockCenterX - this.x, paddockCenterY - this.y) < 310) {
+              const eleAngle = Math.atan2(paddockCenterY - this.y, paddockCenterX - this.x);
+              let diff = eleAngle - this.angle;
+              while (diff > Math.PI) diff -= Math.PI * 2;
+              while (diff < -Math.PI) diff += Math.PI * 2;
+              this.targetHeadOffset = Math.max(-0.62, Math.min(0.62, diff));
+              glancedTarget = true;
+            } else if (birds && birds.length > 0) {
               for (const b of birds) {
                 if (Math.hypot(b.x - this.x, b.y - this.y) < 220) {
                   const birdAngle = Math.atan2(b.y - this.y, b.x - this.x);
@@ -2114,12 +2258,12 @@
                   while (diff > Math.PI) diff -= Math.PI * 2;
                   while (diff < -Math.PI) diff += Math.PI * 2;
                   this.targetHeadOffset = Math.max(-0.6, Math.min(0.6, diff));
-                  glancedBird = true;
+                  glancedTarget = true;
                   break;
                 }
               }
             }
-            if (!glancedBird) {
+            if (!glancedTarget) {
               this.targetHeadOffset = 0;
             }
           } else {
@@ -2135,7 +2279,7 @@
             const d = Math.hypot(dx, dy);
 
             if (d > 4) {
-              // Speed scales smoothly with distance so puppy trots or catches up naturally
+              // Speed scales smoothly with distance so companion trots or catches up naturally
               const desiredSpeed = Math.min(248, Math.max(95, d * 2.5));
               const dirX = dx / d;
               const dirY = dy / d;
@@ -2206,7 +2350,7 @@
           ctx.save();
           ctx.translate(this.x, this.y);
 
-          // Soft shadow under puppy
+          // Soft shadow under companion
           ctx.fillStyle = 'rgba(44, 48, 46, 0.20)';
           ctx.beginPath();
           ctx.ellipse(2, 5, 11.5, 8.5, 0, 0, Math.PI * 2);
@@ -2216,94 +2360,145 @@
 
           const isSitting = this.state === 'sit';
           const pawOffset = this.state === 'follow' ? Math.sin(this.runCycle) * 4.2 : 0;
-          const tailWag = Math.sin(this.tailPhase) * 0.45;
+          const tailWag = Math.sin(this.tailPhase) * 0.42;
 
-          // Wagging tail
+          // Graceful curved feline/tuxedo tail with white tip
           ctx.save();
-          ctx.translate(isSitting ? -7 : -9.5, 0);
+          ctx.translate(isSitting ? -6.5 : -9.0, 0);
           ctx.rotate(tailWag);
           ctx.strokeStyle = '#181A1B';
           ctx.lineWidth = 3.2;
           ctx.lineCap = 'round';
           ctx.beginPath();
           ctx.moveTo(0, 0);
-          ctx.quadraticCurveTo(-5, -2, -7.5, 0);
+          ctx.bezierCurveTo(-4, -3.5, -7.5, 2.5, -10.5, -1.2);
           ctx.stroke();
+
+          ctx.fillStyle = '#F7F5F0';
+          ctx.beginPath();
+          ctx.arc(-10.5, -1.2, 1.5, 0, Math.PI * 2);
+          ctx.fill();
           ctx.restore();
 
-          // Paws
-          ctx.fillStyle = '#181A1B';
+          // Little white-mittened paws
+          ctx.fillStyle = '#F4F1EA';
+          ctx.strokeStyle = '#181A1B';
+          ctx.lineWidth = 1.1;
           if (isSitting) {
-            // Front paws neatly in front
             ctx.beginPath();
-            ctx.ellipse(6.5, -3.8, 3.2, 2.2, 0, 0, Math.PI * 2);
-            ctx.ellipse(6.5, 3.8, 3.2, 2.2, 0, 0, Math.PI * 2);
+            ctx.ellipse(6.5, -3.6, 3.0, 2.1, 0, 0, Math.PI * 2);
+            ctx.ellipse(6.5, 3.6, 3.0, 2.1, 0, 0, Math.PI * 2);
             ctx.fill();
+            ctx.stroke();
           } else {
             ctx.beginPath();
-            ctx.ellipse(5 + pawOffset, -4.5, 3.4, 2.2, 0, 0, Math.PI * 2);
-            ctx.ellipse(5 - pawOffset, 4.5, 3.4, 2.2, 0, 0, Math.PI * 2);
-            ctx.ellipse(-5 - pawOffset, -4.2, 3.2, 2.1, 0, 0, Math.PI * 2);
-            ctx.ellipse(-5 + pawOffset, 4.2, 3.2, 2.1, 0, 0, Math.PI * 2);
+            ctx.ellipse(5 + pawOffset, -4.4, 3.2, 2.1, 0, 0, Math.PI * 2);
+            ctx.ellipse(5 - pawOffset, 4.4, 3.2, 2.1, 0, 0, Math.PI * 2);
+            ctx.ellipse(-5 - pawOffset, -4.1, 3.0, 2.0, 0, 0, Math.PI * 2);
+            ctx.ellipse(-5 + pawOffset, 4.1, 3.0, 2.0, 0, 0, Math.PI * 2);
             ctx.fill();
+            ctx.stroke();
           }
 
-          // Puppy Body (sleek black coat)
+          // Sleek black tuxedo body
           ctx.fillStyle = '#1F2324';
           ctx.strokeStyle = '#121415';
           ctx.lineWidth = 1.5;
           ctx.beginPath();
           if (isSitting) {
-            ctx.ellipse(-1, 0, 7.8, 6.8, 0, 0, Math.PI * 2);
+            ctx.ellipse(-1, 0, 7.6, 6.6, 0, 0, Math.PI * 2);
           } else {
-            ctx.ellipse(-1, 0, 9.2, 6.2, 0, 0, Math.PI * 2);
+            ctx.ellipse(-1, 0, 9.0, 6.0, 0, 0, Math.PI * 2);
           }
           ctx.fill();
           ctx.stroke();
 
-          // Signature White Chest Spot (distinctive white patch on chest/neck)
+          // Signature White Tuxedo Chest Bib
           ctx.fillStyle = '#F7F5F0';
           ctx.beginPath();
           ctx.ellipse(4.8, 0, 3.6, 4.3, 0, 0, Math.PI * 2);
           ctx.fill();
 
-          // Puppy Head (with curious head rotation)
+          // Companion Head (with curious head rotation, pointed ears, and whiskers)
           ctx.save();
           ctx.translate(5.5, 0);
           ctx.rotate(this.headAngleOffset);
-
-          // Floppy black ears
-          ctx.fillStyle = '#141617';
-          ctx.beginPath();
-          ctx.ellipse(-1.2, -5.8, 3.8, 2.3, -0.35, 0, Math.PI * 2);
-          ctx.ellipse(-1.2, 5.8, 3.8, 2.3, 0.35, 0, Math.PI * 2);
-          ctx.fill();
 
           // Head cranium
           ctx.fillStyle = '#232729';
           ctx.strokeStyle = '#121415';
           ctx.lineWidth = 1.4;
           ctx.beginPath();
-          ctx.arc(0.5, 0, 5.6, 0, Math.PI * 2);
+          ctx.arc(0.6, 0, 5.5, 0, Math.PI * 2);
           ctx.fill();
           ctx.stroke();
 
-          // Snout & tiny dark nose
-          ctx.fillStyle = '#2A2E30';
+          // Pointed triangular cat ears (left & right)
+          ctx.fillStyle = '#161819';
+          ctx.strokeStyle = '#121415';
+          ctx.lineWidth = 1.2;
+          // Left ear
           ctx.beginPath();
-          ctx.ellipse(5.0, 0, 3.0, 2.5, 0, 0, Math.PI * 2);
+          ctx.moveTo(-2.2, -3.5);
+          ctx.lineTo(1.2, -7.8);
+          ctx.lineTo(3.2, -3.2);
+          ctx.closePath();
+          ctx.fill();
+          ctx.stroke();
+          // Right ear
+          ctx.beginPath();
+          ctx.moveTo(-2.2, 3.5);
+          ctx.lineTo(1.2, 7.8);
+          ctx.lineTo(3.2, 3.2);
+          ctx.closePath();
+          ctx.fill();
+          ctx.stroke();
+
+          // Warm inner ear accents
+          ctx.fillStyle = '#D89A8E';
+          ctx.beginPath();
+          ctx.moveTo(-1.0, -3.8);
+          ctx.lineTo(1.0, -6.4);
+          ctx.lineTo(2.2, -3.6);
+          ctx.closePath();
+          ctx.fill();
+          ctx.beginPath();
+          ctx.moveTo(-1.0, 3.8);
+          ctx.lineTo(1.0, 6.4);
+          ctx.lineTo(2.2, 3.6);
+          ctx.closePath();
           ctx.fill();
 
-          ctx.fillStyle = '#0B0C0D';
+          // Delicate white muzzle & tiny pink-terracotta nose
+          ctx.fillStyle = '#F7F5F0';
           ctx.beginPath();
-          ctx.arc(7.2, 0, 1.4, 0, Math.PI * 2);
+          ctx.ellipse(4.8, 0, 2.2, 2.4, 0, 0, Math.PI * 2);
           ctx.fill();
+
+          ctx.fillStyle = '#D98A7C';
+          ctx.beginPath();
+          ctx.arc(6.4, 0, 1.25, 0, Math.PI * 2);
+          ctx.fill();
+
+          // Fine whiskers
+          ctx.strokeStyle = 'rgba(244, 241, 234, 0.78)';
+          ctx.lineWidth = 0.9;
+          ctx.beginPath();
+          ctx.moveTo(4.6, -2.2);
+          ctx.lineTo(5.8, -6.2);
+          ctx.moveTo(3.8, -2.4);
+          ctx.lineTo(3.6, -6.4);
+          ctx.moveTo(4.6, 2.2);
+          ctx.lineTo(5.8, 6.2);
+          ctx.moveTo(3.8, 2.4);
+          ctx.lineTo(3.6, 6.4);
+          ctx.stroke();
 
           // Bright expressive eyes
-          ctx.fillStyle = '#F4F1EA';
+          ctx.fillStyle = '#E8E4DA';
           ctx.beginPath();
-          ctx.arc(2.4, -2.3, 1.15, 0, Math.PI * 2);
-          ctx.arc(2.4, 2.3, 1.15, 0, Math.PI * 2);
+          ctx.arc(2.5, -2.3, 1.2, 0, Math.PI * 2);
+          ctx.arc(2.5, 2.3, 1.2, 0, Math.PI * 2);
           ctx.fill();
 
           ctx.restore();
@@ -2365,12 +2560,13 @@
             sctx.fill();
           }
 
-          // 5. Raised Botanical Planters, Benches, Rocks, Signposts & Greenhouse
+          // 5. Raised Botanical Planters, Benches, Rocks, Signposts, Greenhouse & Paddock Base
           this.drawPlanters(sctx);
           this.drawBenches(sctx);
           this.drawRocks(sctx);
           this.drawSignposts(sctx);
           this.drawGreenhouse(sctx);
+          this.drawKeeperYardAndPaddockStatic(sctx);
 
           this.staticCanvas = off;
         }
@@ -2430,13 +2626,13 @@
             ctx.drawImage(this.staticCanvas, 0, 0);
           }
 
-          // Animated water ripple in central plaza basin (1200, 920)
+          // Animated water ripple in central plaza basin (1200, 880)
           const rippleR = 12 + ((this.time * 9) % 20);
           const rippleAlpha = Math.max(0, 1 - (rippleR - 12) / 20) * 0.45;
           ctx.strokeStyle = `rgba(244, 241, 234, ${rippleAlpha.toFixed(2)})`;
           ctx.lineWidth = 1.5;
           ctx.beginPath();
-          ctx.arc(1200, 920, rippleR, 0, Math.PI * 2);
+          ctx.arc(1200, 880, rippleR, 0, Math.PI * 2);
           ctx.stroke();
 
           // 5. Swaying Grass Tufts
@@ -2482,10 +2678,13 @@
           // 7. Dynamic Bollard Lanterns
           this.drawLanterns(ctx, player);
 
-          // 9. Main Project Buildings: ELEPHANTOLOGY & ELEPHANTORINA
+          // 8. Live Animated Elephants & Pool Ripples inside Outdoor Paddock
+          this.drawPaddockElephants(ctx, player);
+
+          // 9. Main Project Buildings: ELEPHANTOLOGY, ELEPHANTORINA & ELEPHANT KEEPER
           for (const b of BUILDINGS) {
             const isHoveredOrActive = activeBuilding && activeBuilding.id === b.id;
-            this.drawProjectBuilding(ctx, b, isHoveredOrActive);
+            this.drawProjectBuilding(ctx, b, isHoveredOrActive, player);
           }
 
           // 10. Low Shrubs
@@ -2493,7 +2692,7 @@
             this.drawShrub(ctx, s);
           }
 
-          // 11. Y-Sorted Characters (Player & Black Puppy Companion)
+          // 11. Y-Sorted Characters (Player & Tuxedo Kitten Companion)
           if (dog.y < player.y) {
             dog.draw(ctx);
             player.draw(ctx);
@@ -2512,7 +2711,7 @@
 
           // 13. In-World Floating Entrance Prompt Badge
           if (activeBuilding && !input.blockedByModal) {
-            this.drawBuildingEntrancePrompt(ctx, activeBuilding);
+            this.drawBuildingEntrancePrompt(ctx, activeBuilding, player);
           }
 
           // 14. Flying Birds & Soft Cloud Shadows
@@ -2531,7 +2730,7 @@
           ctx.beginPath();
           ctx.ellipse(615, 500, 420, 310, -0.1, 0, Math.PI * 2);
           ctx.ellipse(1785, 500, 420, 310, 0.1, 0, Math.PI * 2);
-          ctx.ellipse(1200, 980, 560, 410, 0, 0, Math.PI * 2);
+          ctx.ellipse(1200, 1020, 620, 470, 0, 0, Math.PI * 2);
           ctx.stroke();
 
           // Architectural campus perimeter stone wall / hedge boundary
@@ -2558,64 +2757,80 @@
 
             // West Wing (Elephantology) to Central Plaza curved path
             ctx.beginPath();
-            ctx.moveTo(695, 765);
-            ctx.lineTo(695, 845);
-            ctx.bezierCurveTo(695, 920, 950, 920, 1200, 920);
+            ctx.moveTo(675, 745);
+            ctx.lineTo(675, 815);
+            ctx.bezierCurveTo(675, 880, 940, 880, 1200, 880);
             ctx.stroke();
 
             // East Wing (Elephantorina) to Central Plaza curved path
             ctx.beginPath();
-            ctx.moveTo(1705, 765);
-            ctx.lineTo(1705, 845);
-            ctx.bezierCurveTo(1705, 920, 1450, 920, 1200, 920);
+            ctx.moveTo(1725, 745);
+            ctx.lineTo(1725, 815);
+            ctx.bezierCurveTo(1725, 880, 1460, 880, 1200, 880);
             ctx.stroke();
 
             // North Botanical Greenhouse promenade
             ctx.beginPath();
-            ctx.moveTo(1200, 400);
-            ctx.lineTo(1200, 920);
+            ctx.moveTo(1200, 385);
+            ctx.lineTo(1200, 880);
             ctx.stroke();
 
             // Upper scenic walkway connecting West Wing, Greenhouse promenade, and East Wing
             ctx.beginPath();
-            ctx.moveTo(695, 825);
-            ctx.quadraticCurveTo(950, 680, 1200, 680);
-            ctx.quadraticCurveTo(1450, 680, 1705, 825);
+            ctx.moveTo(675, 795);
+            ctx.quadraticCurveTo(940, 655, 1200, 655);
+            ctx.quadraticCurveTo(1460, 655, 1725, 795);
             ctx.stroke();
 
-            // South Entrance promenade
+            // Direct Central Plaza to Elephant Keeper North Porch walkway
             ctx.beginPath();
-            ctx.moveTo(1200, 920);
-            ctx.lineTo(1200, 1460);
+            ctx.moveTo(1200, 880);
+            ctx.quadraticCurveTo(1065, 985, 990, 1095);
+            ctx.stroke();
+
+            // Southern Keeper & Paddock Promenade Loop (West & East avenues meeting at South Forecourt)
+            ctx.beginPath();
+            ctx.moveTo(675, 815);
+            ctx.lineTo(662, 1340);
+            ctx.quadraticCurveTo(662, 1415, 750, 1415);
+            ctx.lineTo(1650, 1415);
+            ctx.quadraticCurveTo(1738, 1415, 1738, 1340);
+            ctx.lineTo(1725, 815);
+            ctx.stroke();
+
+            // South Gate promenade from Southern Keeper Loop
+            ctx.beginPath();
+            ctx.moveTo(1200, 1415);
+            ctx.lineTo(1200, 1605);
             ctx.stroke();
           };
 
           // Path outline, stone curb, and warm gravel fill
-          drawRoadNetwork(92, PALETTE.outline);
-          drawRoadNetwork(87, PALETTE.stoneLight);
-          drawRoadNetwork(72, PALETTE.sandPath);
+          drawRoadNetwork(90, PALETTE.outline);
+          drawRoadNetwork(85, PALETTE.stoneLight);
+          drawRoadNetwork(70, PALETTE.sandPath);
 
-          // Central Plaza Circle (1200, 920)
+          // Central Plaza Circle (1200, 880)
           const px = 1200;
-          const py = 920;
+          const py = 880;
           ctx.fillStyle = PALETTE.stoneLight;
           ctx.strokeStyle = PALETTE.outline;
           ctx.lineWidth = 2.5;
           ctx.beginPath();
-          ctx.arc(px, py, 152, 0, Math.PI * 2);
+          ctx.arc(px, py, 148, 0, Math.PI * 2);
           ctx.fill();
           ctx.stroke();
 
           ctx.fillStyle = PALETTE.sandPath;
           ctx.beginPath();
-          ctx.arc(px, py, 134, 0, Math.PI * 2);
+          ctx.arc(px, py, 130, 0, Math.PI * 2);
           ctx.fill();
           ctx.stroke();
 
           // Inner architectural compass / botanical water & stone medallion
           ctx.fillStyle = PALETTE.stoneLight;
           ctx.beginPath();
-          ctx.arc(px, py, 54, 0, Math.PI * 2);
+          ctx.arc(px, py, 52, 0, Math.PI * 2);
           ctx.fill();
           ctx.stroke();
 
@@ -2625,8 +2840,8 @@
           for (let a = 0; a < 8; a++) {
             const ang = (a * Math.PI) / 4;
             ctx.beginPath();
-            ctx.moveTo(px + Math.cos(ang) * 54, py + Math.sin(ang) * 54);
-            ctx.lineTo(px + Math.cos(ang) * 133, py + Math.sin(ang) * 133);
+            ctx.moveTo(px + Math.cos(ang) * 52, py + Math.sin(ang) * 52);
+            ctx.lineTo(px + Math.cos(ang) * 129, py + Math.sin(ang) * 129);
             ctx.stroke();
           }
 
@@ -2635,7 +2850,7 @@
           ctx.strokeStyle = PALETTE.outline;
           ctx.lineWidth = 2;
           ctx.beginPath();
-          ctx.arc(px, py, 34, 0, Math.PI * 2);
+          ctx.arc(px, py, 33, 0, Math.PI * 2);
           ctx.fill();
           ctx.stroke();
 
@@ -2653,14 +2868,14 @@
           ctx.strokeStyle = PALETTE.outline;
           ctx.lineWidth = 2.2;
           ctx.beginPath();
-          ctx.roundRect(1115, 1435, 170, 56, 12);
+          ctx.roundRect(1115, 1580, 170, 54, 12);
           ctx.fill();
           ctx.stroke();
 
           ctx.fillStyle = PALETTE.outline;
           ctx.font = '700 11px system-ui, -apple-system, sans-serif';
           ctx.textAlign = 'center';
-          ctx.fillText('ЮЖНЫЕ ВОРОТА СТАНЦИИ', 1200, 1468);
+          ctx.fillText('ЮЖНЫЕ ВОРОТА СТАНЦИИ', 1200, 1612);
 
           ctx.restore();
         }
@@ -2792,7 +3007,7 @@
             ctx.strokeStyle = PALETTE.outline;
             ctx.lineWidth = 1.8;
             ctx.beginPath();
-            ctx.roundRect(s.x - 52, s.y - 10, 104, 20, 5);
+            ctx.roundRect(s.x - 56, s.y - 10, 112, 20, 5);
             ctx.fill();
             ctx.stroke();
 
@@ -2925,23 +3140,427 @@
           ctx.restore();
         }
 
-        drawProjectBuilding(ctx, b, isActive) {
+        drawKeeperYardAndPaddockStatic(ctx) {
+          const pad = ELEPHANT_PADDOCK;
+          const yard = KEEPER_YARD;
+          ctx.save();
+
+          // === A. WEST KEEPER SERVICE YARD (Hay Bales & Wheelbarrow Pad) ===
+          ctx.fillStyle = 'rgba(44, 48, 46, 0.14)';
+          ctx.beginPath();
+          ctx.roundRect(yard.x + 4, yard.y + 6, yard.w, yard.h, 8);
+          ctx.fill();
+
+          ctx.fillStyle = PALETTE.stoneWarm;
+          ctx.strokeStyle = PALETTE.outline;
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.roundRect(yard.x, yard.y, yard.w, yard.h, 8);
+          ctx.fill();
+          ctx.stroke();
+
+          // Stacked Golden Hay Bales
+          const bales = [
+            { x: yard.x + 10, y: yard.y + 10, w: 38, h: 24 },
+            { x: yard.x + 12, y: yard.y + 38, w: 36, h: 22 }
+          ];
+          for (const bl of bales) {
+            ctx.fillStyle = PALETTE.straw;
+            ctx.strokeStyle = PALETTE.outline;
+            ctx.lineWidth = 1.8;
+            ctx.beginPath();
+            ctx.roundRect(bl.x, bl.y, bl.w, bl.h, 4);
+            ctx.fill();
+            ctx.stroke();
+            // Twine ties on hay bale
+            ctx.strokeStyle = PALETTE.keeper;
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.moveTo(bl.x + 11, bl.y);
+            ctx.lineTo(bl.x + 11, bl.y + bl.h);
+            ctx.moveTo(bl.x + bl.w - 11, bl.y);
+            ctx.lineTo(bl.x + bl.w - 11, bl.y + bl.h);
+            ctx.stroke();
+          }
+
+          // Keeper's Wheelbarrow (Тачка смотрителя)
+          const wx = yard.x + 31;
+          const wy = yard.y + 74;
+          ctx.strokeStyle = PALETTE.woodDark;
+          ctx.lineWidth = 2.2;
+          ctx.beginPath();
+          ctx.moveTo(wx - 16, wy - 5);
+          ctx.lineTo(wx + 12, wy);
+          ctx.moveTo(wx - 16, wy + 5);
+          ctx.lineTo(wx + 12, wy);
+          ctx.stroke();
+          // Wheel
+          ctx.fillStyle = PALETTE.outline;
+          ctx.beginPath();
+          ctx.ellipse(wx + 14, wy, 4.5, 2.2, 0, 0, Math.PI * 2);
+          ctx.fill();
+          // Tub
+          ctx.fillStyle = PALETTE.sage;
+          ctx.strokeStyle = PALETTE.outline;
+          ctx.lineWidth = 1.8;
+          ctx.beginPath();
+          ctx.roundRect(wx - 10, wy - 8, 20, 16, 4);
+          ctx.fill();
+          ctx.stroke();
+
+          // === B. ADJOINING OUTDOOR ELEPHANT PADDOCK (ОТКРЫТЫЙ ВЫГУЛ) ===
+          // Drop shadow
+          ctx.fillStyle = 'rgba(44, 48, 46, 0.14)';
+          ctx.beginPath();
+          ctx.roundRect(pad.x + 12, pad.y + 15, pad.w, pad.h, 16);
+          ctx.fill();
+
+          // Warm compacted sandy paddock ground
+          ctx.fillStyle = '#E1D9C6';
+          ctx.strokeStyle = PALETTE.outline;
+          ctx.lineWidth = 2.5;
+          ctx.beginPath();
+          ctx.roundRect(pad.x, pad.y, pad.w, pad.h, 14);
+          ctx.fill();
+          ctx.stroke();
+
+          // Soft organic loam/sand rings inside paddock
+          ctx.fillStyle = '#D7CEB8';
+          ctx.beginPath();
+          ctx.ellipse(pad.x + 155, pad.y + 125, 110, 75, 0.12, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.beginPath();
+          ctx.ellipse(pad.poolX, pad.poolY, pad.poolRx + 18, pad.poolRy + 14, -0.08, 0, Math.PI * 2);
+          ctx.fill();
+
+          // Outdoor Bathing & Cooling Pool (Купальня)
+          ctx.fillStyle = PALETTE.water;
+          ctx.strokeStyle = PALETTE.outline;
+          ctx.lineWidth = 2.2;
+          ctx.beginPath();
+          ctx.ellipse(pad.poolX, pad.poolY, pad.poolRx, pad.poolRy, -0.08, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.stroke();
+
+          ctx.fillStyle = PALETTE.waterDeep;
+          ctx.beginPath();
+          ctx.ellipse(pad.poolX + 6, pad.poolY + 3, pad.poolRx * 0.65, pad.poolRy * 0.62, -0.08, 0, Math.PI * 2);
+          ctx.fill();
+
+          // Smooth river stones bordering pool edge
+          const poolStones = [
+            { x: pad.poolX - 56, y: pad.poolY - 26, r: 9 },
+            { x: pad.poolX - 64, y: pad.poolY - 12, r: 7 },
+            { x: pad.poolX + 52, y: pad.poolY + 28, r: 10 },
+            { x: pad.poolX + 64, y: pad.poolY + 16, r: 7 }
+          ];
+          for (const st of poolStones) {
+            ctx.fillStyle = PALETTE.stoneLight;
+            ctx.strokeStyle = PALETTE.outline;
+            ctx.lineWidth = 1.6;
+            ctx.beginPath();
+            ctx.arc(st.x, st.y, st.r, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+          }
+
+          // Paddock Enrichment: Timber Hay Feeder & Rubbing Post (Сенник и чесальный столб)
+          const fx = pad.x + 88;
+          const fy = pad.y + 58;
+          ctx.fillStyle = PALETTE.wood;
+          ctx.strokeStyle = PALETTE.outline;
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.roundRect(fx - 26, fy - 14, 52, 28, 5);
+          ctx.fill();
+          ctx.stroke();
+
+          ctx.fillStyle = PALETTE.straw;
+          ctx.beginPath();
+          ctx.roundRect(fx - 20, fy - 9, 40, 18, 3);
+          ctx.fill();
+          ctx.stroke();
+
+          // Timber Rubbing Post & Enrichment Log
+          ctx.fillStyle = PALETTE.woodDark;
+          ctx.beginPath();
+          ctx.arc(pad.x + 92, pad.y + 178, 8.5, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.stroke();
+
+          ctx.fillStyle = PALETTE.wood;
+          ctx.save();
+          ctx.translate(pad.x + 225, pad.y + 182);
+          ctx.rotate(0.28);
+          ctx.beginPath();
+          ctx.roundRect(-24, -6, 48, 12, 5);
+          ctx.fill();
+          ctx.stroke();
+          ctx.restore();
+
+          // Timber-and-Stone Paddock Perimeter Fence Posts
+          ctx.strokeStyle = PALETTE.wood;
+          ctx.lineWidth = 5;
+          ctx.strokeRect(pad.x + 5, pad.y + 5, pad.w - 10, pad.h - 10);
+          ctx.strokeStyle = PALETTE.outline;
+          ctx.lineWidth = 2;
+          ctx.strokeRect(pad.x + 3, pad.y + 3, pad.w - 6, pad.h - 6);
+
+          // Stone fence corner & interval posts
+          const postCoords = [
+            [pad.x + 4, pad.y + 4],
+            [pad.x + pad.w / 2, pad.y + 4],
+            [pad.x + pad.w - 4, pad.y + 4],
+            [pad.x + pad.w - 4, pad.y + pad.h / 2],
+            [pad.x + pad.w - 4, pad.y + pad.h - 4],
+            [pad.x + pad.w / 2, pad.y + pad.h - 4],
+            [pad.x + 4, pad.y + pad.h - 4]
+          ];
+          for (const [px, py] of postCoords) {
+            ctx.fillStyle = PALETTE.stoneLight;
+            ctx.strokeStyle = PALETTE.outline;
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.roundRect(px - 6, py - 6, 12, 12, 3);
+            ctx.fill();
+            ctx.stroke();
+          }
+
+          // Protected-Contact Shift Gates connecting Barn East wall to Paddock
+          ctx.fillStyle = PALETTE.keeper;
+          ctx.strokeStyle = PALETTE.outline;
+          ctx.lineWidth = 2;
+          ctx.fillRect(pad.x - 4, pad.y + 44, 10, 48);
+          ctx.strokeRect(pad.x - 4, pad.y + 44, 10, 48);
+          ctx.fillRect(pad.x - 4, pad.y + 136, 10, 48);
+          ctx.strokeRect(pad.x - 4, pad.y + 136, 10, 48);
+
+          // Decorative plaque on Paddock south fence rail
+          const labelW = 192;
+          const labelX = pad.x + pad.w / 2 - labelW / 2;
+          const labelY = pad.y + pad.h - 12;
+          ctx.fillStyle = PALETTE.stoneLight;
+          ctx.strokeStyle = PALETTE.outline;
+          ctx.lineWidth = 1.8;
+          ctx.beginPath();
+          ctx.roundRect(labelX, labelY, labelW, 22, 6);
+          ctx.fill();
+          ctx.stroke();
+
+          ctx.fillStyle = PALETTE.outline;
+          ctx.font = '700 9.5px system-ui, -apple-system, sans-serif';
+          ctx.textAlign = 'center';
+          ctx.fillText('ОТКРЫТЫЙ ВЫГУЛ СЛОНОВНИКА', pad.x + pad.w / 2, labelY + 14.5);
+
+          ctx.restore();
+        }
+
+        drawPaddockElephants(ctx, player) {
+          const pad = ELEPHANT_PADDOCK;
+          ctx.save();
+
+          // 1. Animated water ripple in Paddock Bathing Pool
+          const pRipple = 16 + ((this.time * 11) % 34);
+          const pAlpha = Math.max(0, 1 - (pRipple - 16) / 34) * 0.48;
+          ctx.strokeStyle = `rgba(244, 241, 234, ${pAlpha.toFixed(2)})`;
+          ctx.lineWidth = 1.6;
+          ctx.beginPath();
+          ctx.ellipse(pad.poolX - 10, pad.poolY + 4, pRipple, pRipple * 0.68, -0.08, 0, Math.PI * 2);
+          ctx.stroke();
+
+          // Check if player & kitten are near the paddock to trigger subtle friendly attention
+          const distToPaddock = Math.hypot(player.x - (pad.x + 180), player.y - (pad.y + 140));
+          const isVisitorNear = distToPaddock < 290;
+
+          // Helper to draw a stylized top-down Elephant (Слониха)
+          const drawSingleElephant = (ex, ey, baseAngle, scale, phaseOffset, nameTag) => {
+            const sway = Math.sin(this.time * 1.6 + phaseOffset) * 0.08;
+            const earFlap = Math.abs(Math.sin(this.time * 2.1 + phaseOffset)) * 0.18;
+            const trunkCurl = Math.sin(this.time * 2.4 + phaseOffset) * 5.5;
+
+            let angle = baseAngle + sway;
+            if (isVisitorNear) {
+              const toPlayer = Math.atan2(player.y - ey, player.x - ex);
+              let diff = toPlayer - angle;
+              while (diff > Math.PI) diff -= Math.PI * 2;
+              while (diff < -Math.PI) diff += Math.PI * 2;
+              angle += Math.max(-0.35, Math.min(0.35, diff * 0.35));
+            }
+
+            ctx.save();
+            ctx.translate(ex, ey);
+            ctx.scale(scale, scale);
+
+            // Soft ground shadow
+            ctx.fillStyle = 'rgba(44, 48, 46, 0.20)';
+            ctx.beginPath();
+            ctx.ellipse(4, 7, 32, 23, angle, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.rotate(angle);
+
+            // Tail swishing behind
+            const tailSwish = Math.sin(this.time * 3.2 + phaseOffset) * 3.5;
+            ctx.strokeStyle = PALETTE.outline;
+            ctx.lineWidth = 2.4;
+            ctx.lineCap = 'round';
+            ctx.beginPath();
+            ctx.moveTo(-26, 0);
+            ctx.quadraticCurveTo(-32, tailSwish * 0.5, -35, tailSwish);
+            ctx.stroke();
+
+            // Sturdy rounded body (warm elephant slate-grey)
+            ctx.fillStyle = '#848B88';
+            ctx.strokeStyle = PALETTE.outline;
+            ctx.lineWidth = 2.4;
+            ctx.beginPath();
+            ctx.ellipse(-3, 0, 26, 19.5, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+
+            // Subtle back highlight
+            ctx.fillStyle = '#969D9A';
+            ctx.beginPath();
+            ctx.ellipse(-5, -3, 17, 11, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Expressive wide ears (left & right flapping gently)
+            ctx.fillStyle = '#757C79';
+            ctx.strokeStyle = PALETTE.outline;
+            ctx.lineWidth = 2.2;
+            // Left ear
+            ctx.save();
+            ctx.translate(12, -13);
+            ctx.rotate(-0.28 - earFlap);
+            ctx.beginPath();
+            ctx.ellipse(0, -5, 9.5, 13.5, 0.25, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+            ctx.restore();
+            // Right ear
+            ctx.save();
+            ctx.translate(12, 13);
+            ctx.rotate(0.28 + earFlap);
+            ctx.beginPath();
+            ctx.ellipse(0, 5, 9.5, 13.5, -0.25, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+            ctx.restore();
+
+            // Trunk (Хобот) extending forward and swaying gently
+            ctx.strokeStyle = PALETTE.outline;
+            ctx.lineWidth = 9.5;
+            ctx.lineCap = 'round';
+            ctx.beginPath();
+            ctx.moveTo(20, 0);
+            ctx.quadraticCurveTo(30, trunkCurl * 0.45, 37, trunkCurl);
+            ctx.stroke();
+
+            ctx.strokeStyle = '#848B88';
+            ctx.lineWidth = 5.5;
+            ctx.beginPath();
+            ctx.moveTo(19, 0);
+            ctx.quadraticCurveTo(30, trunkCurl * 0.45, 37, trunkCurl);
+            ctx.stroke();
+
+            // Head crown
+            ctx.fillStyle = '#8A918E';
+            ctx.strokeStyle = PALETTE.outline;
+            ctx.lineWidth = 2.3;
+            ctx.beginPath();
+            ctx.ellipse(15, 0, 13.5, 12.5, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+
+            // Gentle eyes
+            ctx.fillStyle = PALETTE.outline;
+            ctx.beginPath();
+            ctx.arc(20, -6.5, 1.7, 0, Math.PI * 2);
+            ctx.arc(20, 6.5, 1.7, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.restore();
+          };
+
+          // Elephant 1: Matriarch near hay feeder & center paddock
+          const e1x = pad.x + 148 + Math.sin(this.time * 0.45) * 8;
+          const e1y = pad.y + 124 + Math.cos(this.time * 0.35) * 6;
+          drawSingleElephant(e1x, e1y, -0.55, 1.0, 0.0, 'Марта');
+
+          // Elephant 2: Companion elephant wading by the cooling pool edge
+          const e2x = pad.poolX - 38 + Math.cos(this.time * 0.5) * 6;
+          const e2y = pad.poolY + 12 + Math.sin(this.time * 0.4) * 5;
+          drawSingleElephant(e2x, e2y, 0.35, 0.88, 2.1, 'Даша');
+
+          ctx.restore();
+        }
+
+        drawProjectBuilding(ctx, b, isActive, player) {
           ctx.save();
           const isWest = b.id === 'elephantology';
+          const isKeeper = b.id === 'elephantkeeper';
 
-          // 1. Entrance Terrace / Porch Steps (in front of doorX, doorY)
+          const pulse = (Math.sin(this.time * 5) + 1) * 0.5;
+          const glowColor = isWest
+            ? `rgba(46, 90, 68, ${0.16 + pulse * 0.12})`
+            : isKeeper
+            ? `rgba(169, 107, 59, ${0.18 + pulse * 0.14})`
+            : `rgba(200, 109, 81, ${0.18 + pulse * 0.14})`;
+
+          // 1A. North Plaza Entrance Porch for Elephant Keeper Barn (facing Central Plaza)
+          if (isKeeper && b.secondaryDoors && b.secondaryDoors.length > 0) {
+            const nd = b.secondaryDoors[0];
+            const nPorchW = 122;
+            const nPorchH = 46;
+            const nPorchX = nd.x - nPorchW / 2;
+            const nPorchY = b.y - nPorchH + 6;
+            const nearNorth = player && Math.hypot(player.x - nd.x, player.y - nd.y) <= (nd.interactRadius || b.interactRadius);
+
+            if (isActive && nearNorth) {
+              ctx.save();
+              ctx.fillStyle = glowColor;
+              ctx.beginPath();
+              ctx.roundRect(nPorchX - 14, nPorchY - 14, nPorchW + 28, nPorchH + 22, 16);
+              ctx.fill();
+              ctx.restore();
+            }
+
+            ctx.fillStyle = PALETTE.stoneLight;
+            ctx.strokeStyle = isActive && nearNorth ? b.accent : PALETTE.outline;
+            ctx.lineWidth = isActive && nearNorth ? 3 : 2.2;
+            ctx.beginPath();
+            ctx.roundRect(nPorchX, nPorchY, nPorchW, nPorchH, 8);
+            ctx.fill();
+            ctx.stroke();
+
+            ctx.strokeStyle = 'rgba(44, 48, 46, 0.35)';
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.moveTo(nPorchX + 10, nPorchY + 14);
+            ctx.lineTo(nPorchX + nPorchW - 10, nPorchY + 14);
+            ctx.moveTo(nPorchX + 10, nPorchY + 26);
+            ctx.lineTo(nPorchX + nPorchW - 10, nPorchY + 26);
+            ctx.stroke();
+
+            ctx.fillStyle = b.accent;
+            ctx.strokeStyle = PALETTE.outline;
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.roundRect(nd.x - 36, b.y - 12, 72, 14, 4);
+            ctx.fill();
+            ctx.stroke();
+          }
+
+          // 1B. Primary South Entrance Terrace / Porch Steps (in front of doorX, doorY)
           const porchW = 126;
           const porchH = 54;
           const porchX = b.doorX - porchW / 2;
           const porchY = b.y + b.h - 6;
+          const nearSouth = !isKeeper || !player || Math.hypot(player.x - b.doorX, player.y - b.doorY) <= b.interactRadius;
 
-          // Active entrance glow aura when player is nearby
-          if (isActive) {
-            const pulse = (Math.sin(this.time * 5) + 1) * 0.5;
+          if (isActive && nearSouth) {
             ctx.save();
-            ctx.fillStyle = isWest
-              ? `rgba(46, 90, 68, ${0.16 + pulse * 0.12})`
-              : `rgba(200, 109, 81, ${0.18 + pulse * 0.14})`;
+            ctx.fillStyle = glowColor;
             ctx.beginPath();
             ctx.roundRect(porchX - 14, porchY - 8, porchW + 28, porchH + 24, 16);
             ctx.fill();
@@ -2950,8 +3569,8 @@
 
           // Porch stone slab
           ctx.fillStyle = PALETTE.stoneLight;
-          ctx.strokeStyle = isActive ? b.accent : PALETTE.outline;
-          ctx.lineWidth = isActive ? 3 : 2.2;
+          ctx.strokeStyle = isActive && nearSouth ? b.accent : PALETTE.outline;
+          ctx.lineWidth = isActive && nearSouth ? 3 : 2.2;
           ctx.beginPath();
           ctx.roundRect(porchX, porchY, porchW, porchH, 8);
           ctx.fill();
@@ -2992,7 +3611,7 @@
           ctx.stroke();
 
           // Inner roof parapet frame
-          ctx.fillStyle = PALETTE.stoneWarm;
+          ctx.fillStyle = isKeeper ? '#E6DFD1' : PALETTE.stoneWarm;
           ctx.lineWidth = 2;
           ctx.beginPath();
           ctx.roundRect(b.x + 14, b.y + 14, b.w - 28, b.h - 28, 11);
@@ -3001,7 +3620,6 @@
 
           if (isWest) {
             // === BUILDING 1: ELEPHANTOLOGY (Academic Research Library) ===
-            // Sage green architectural wing bands
             ctx.fillStyle = PALETTE.sage;
             ctx.beginPath();
             ctx.roundRect(b.x + 26, b.y + 26, b.w - 52, 34, 7);
@@ -3017,20 +3635,17 @@
               const bx = startX + i * (bayW + gap);
               const by = b.y + 72;
 
-              // Warm library interior glow
               ctx.fillStyle = '#EFE3C8';
               ctx.beginPath();
               ctx.roundRect(bx, by, bayW, bayH, 8);
               ctx.fill();
 
-              // Bookshelf rows visible inside library skylight
               ctx.fillStyle = PALETTE.wood;
               ctx.fillRect(bx + 12, by + 16, bayW - 24, 9);
               ctx.fillRect(bx + 12, by + 38, bayW - 24, 9);
               ctx.fillStyle = PALETTE.sage;
               ctx.fillRect(bx + 18, by + 64, bayW - 36, 20);
 
-              // Glass skylight overlay
               ctx.fillStyle = 'rgba(176, 210, 202, 0.52)';
               ctx.strokeStyle = PALETTE.outline;
               ctx.lineWidth = 2;
@@ -3039,7 +3654,6 @@
               ctx.fill();
               ctx.stroke();
 
-              // Window mullion crossbars
               ctx.beginPath();
               ctx.moveTo(bx + bayW / 2, by);
               ctx.lineTo(bx + bayW / 2, by + bayH);
@@ -3047,16 +3661,122 @@
               ctx.lineTo(bx + bayW, by + bayH / 2);
               ctx.stroke();
             }
+          } else if (isKeeper) {
+            // === BUILDING 3: ELEPHANT KEEPER (Elephant Barn & Keeper Training Facility) ===
+            // Structural timber roof ridge beams on sides
+            ctx.fillStyle = PALETTE.wood;
+            ctx.strokeStyle = PALETTE.outline;
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.roundRect(b.x + 24, b.y + 24, b.w - 48, 42, 7);
+            ctx.fill();
+            ctx.stroke();
+
+            // North Keeper Corridor & SlonVet Feed Prep Skylight (Проход кипера и кормокухня)
+            const kx = b.x + 34;
+            const ky = b.y + 30;
+            const kw = b.w - 68;
+            const kh = 30;
+            ctx.fillStyle = '#F2E7CF';
+            ctx.beginPath();
+            ctx.roundRect(kx, ky, kw, kh, 5);
+            ctx.fill();
+            ctx.stroke();
+
+            // SlonVet Vegetable Prep table, ration buckets, water tank, and gate control panel inside corridor
+            ctx.fillStyle = PALETTE.terracotta;
+            ctx.beginPath();
+            ctx.arc(kx + 28, ky + 15, 7, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = PALETTE.sage;
+            ctx.beginPath();
+            ctx.arc(kx + 48, ky + 15, 7, 0, Math.PI * 2);
+            ctx.fill();
+            // Training water tank & hose reel
+            ctx.fillStyle = PALETTE.water;
+            ctx.fillRect(kx + kw - 84, ky + 6, 34, 18);
+            ctx.strokeRect(kx + kw - 84, ky + 6, 34, 18);
+            // Gate control console
+            ctx.fillStyle = PALETTE.keeper;
+            ctx.fillRect(kx + kw - 36, ky + 7, 22, 16);
+            ctx.strokeRect(kx + kw - 36, ky + 7, 22, 16);
+
+            // Protected-Contact Steel & Timber Barrier Line (Решётка защищённого контакта)
+            ctx.strokeStyle = PALETTE.outline;
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.moveTo(b.x + 28, b.y + 73);
+            ctx.lineTo(b.x + b.w - 28, b.y + 73);
+            ctx.stroke();
+            for (let postX = b.x + 42; postX <= b.x + b.w - 42; postX += 28) {
+              ctx.fillStyle = PALETTE.outline;
+              ctx.fillRect(postX - 2, b.y + 69, 4, 8);
+            }
+
+            // Two Indoor Elephant Stalls (Западное и Восточное стойло) visible through barn skylights
+            const stallW = 166;
+            const stallH = 98;
+            const stallY = b.y + 82;
+            const stalls = [b.x + 34, b.x + 220];
+
+            for (let sIdx = 0; sIdx < 2; sIdx++) {
+              const sx = stalls[sIdx];
+              // Warm golden straw/sawdust bedding inside stall
+              ctx.fillStyle = PALETTE.straw;
+              ctx.strokeStyle = PALETTE.outline;
+              ctx.lineWidth = 2;
+              ctx.beginPath();
+              ctx.roundRect(sx, stallY, stallW, stallH, 8);
+              ctx.fill();
+              ctx.stroke();
+
+              // Concrete service strip along the protected-contact barrier
+              ctx.fillStyle = '#D8D3C6';
+              ctx.fillRect(sx + 2, stallY + 2, stallW - 4, 20);
+
+              // Automatic water trough (Поилка)
+              ctx.fillStyle = PALETTE.water;
+              ctx.strokeStyle = PALETTE.outline;
+              ctx.lineWidth = 1.6;
+              ctx.beginPath();
+              ctx.roundRect(sx + 12, stallY + 6, 36, 16, 4);
+              ctx.fill();
+              ctx.stroke();
+
+              // Hay rack (Сенник)
+              ctx.fillStyle = PALETTE.wood;
+              ctx.beginPath();
+              ctx.roundRect(sx + stallW - 54, stallY + 6, 42, 15, 3);
+              ctx.fill();
+              ctx.stroke();
+
+              // Skylight glass glazing & timber rafters over stall
+              ctx.fillStyle = 'rgba(186, 214, 206, 0.44)';
+              ctx.beginPath();
+              ctx.roundRect(sx, stallY, stallW, stallH, 8);
+              ctx.fill();
+              ctx.stroke();
+
+              ctx.beginPath();
+              ctx.moveTo(sx + stallW / 2, stallY);
+              ctx.lineTo(sx + stallW / 2, stallY + stallH);
+              ctx.moveTo(sx, stallY + stallH / 2);
+              ctx.lineTo(sx + stallW, stallY + stallH / 2);
+              ctx.stroke();
+            }
+
+            // Shift Gate between West and East stalls
+            ctx.fillStyle = PALETTE.keeper;
+            ctx.fillRect(b.x + 203, stallY + 26, 14, 46);
+            ctx.strokeRect(b.x + 203, stallY + 26, 14, 46);
           } else {
             // === BUILDING 2: ELEPHANTORINA (Modern Interactive Education Center) ===
-            // Contemporary asymmetric terracotta architectural roof & solar/terracotta louvers
             ctx.fillStyle = PALETTE.terracotta;
             ctx.beginPath();
             ctx.roundRect(b.x + 26, b.y + 26, 146, b.h - 78, 9);
             ctx.fill();
             ctx.stroke();
 
-            // Architectural louver ribs on terracotta wing
             ctx.strokeStyle = 'rgba(44, 48, 46, 0.35)';
             ctx.lineWidth = 2;
             for (let ly = b.y + 44; ly < b.y + b.h - 62; ly += 18) {
@@ -3066,7 +3786,6 @@
               ctx.stroke();
             }
 
-            // Large panoramic interactive atrium skylight on the right wing
             const ax = b.x + 186;
             const ay = b.y + 26;
             const aw = 178;
@@ -3079,7 +3798,6 @@
             ctx.roundRect(ax, ay, aw, ah, 10);
             ctx.fill();
 
-            // Circular interactive rotunda table inside atrium
             ctx.fillStyle = PALETTE.terracottaLight;
             ctx.beginPath();
             ctx.arc(ax + aw / 2, ay + ah / 2, 32, 0, Math.PI * 2);
@@ -3091,14 +3809,12 @@
             ctx.arc(ax + aw / 2, ay + ah / 2, 16, 0, Math.PI * 2);
             ctx.fill();
 
-            // Glass roof over atrium
             ctx.fillStyle = 'rgba(186, 216, 212, 0.50)';
             ctx.beginPath();
             ctx.roundRect(ax, ay, aw, ah, 10);
             ctx.fill();
             ctx.stroke();
 
-            // Geometric window grid
             ctx.beginPath();
             ctx.moveTo(ax + aw / 2, ay);
             ctx.lineTo(ax + aw / 2, ay + ah);
@@ -3107,8 +3823,8 @@
             ctx.stroke();
           }
 
-          // 4. Prominent Architectural Signboard (ELEPHANTOLOGY / ELEPHANTORINA)
-          const signW = 246;
+          // 4. Prominent Architectural Signboard (ELEPHANTOLOGY / ELEPHANTORINA / ELEPHANT KEEPER)
+          const signW = isKeeper ? 262 : 246;
           const signH = 40;
           const signX = b.doorX - signW / 2;
           const signY = b.y + b.h - 48;
@@ -3137,10 +3853,15 @@
           ctx.restore();
         }
 
-        drawBuildingEntrancePrompt(ctx, b) {
+        drawBuildingEntrancePrompt(ctx, b, player) {
           const floatY = Math.sin(this.time * 4.2) * 3.5;
           const px = b.doorX;
-          const py = b.y + b.h - 76 + floatY;
+          let py = b.y + b.h - 76 + floatY;
+
+          // If standing at the North Plaza Entrance of Elephant Keeper, float badge above North Porch
+          if (b.id === 'elephantkeeper' && player && player.y < b.y + b.h * 0.45) {
+            py = b.y - 68 + floatY;
+          }
 
           ctx.save();
           ctx.font = '700 12px system-ui, -apple-system, sans-serif';
@@ -3211,18 +3932,15 @@
           const swayX = Math.sin(this.time * 1.7 + t.phase) * 2.6;
           const swayY = Math.cos(this.time * 1.4 + t.phase) * 1.8;
 
-          // Fade canopy slightly if player walks directly underneath so silhouette stays readable
           const distToPlayer = Math.hypot(player.x - t.x, player.y - t.y);
           const canopyAlpha = distToPlayer < t.r + 12 ? 0.62 : 0.97;
 
           ctx.save();
-          // Ground cast shadow
           ctx.fillStyle = 'rgba(44, 48, 46, 0.15)';
           ctx.beginPath();
           ctx.ellipse(t.x + 16, t.y + 20, t.r * 0.98, t.r * 0.82, 0, 0, Math.PI * 2);
           ctx.fill();
 
-          // Tree Trunk
           ctx.fillStyle = PALETTE.woodDark;
           ctx.strokeStyle = PALETTE.outline;
           ctx.lineWidth = 2;
@@ -3231,7 +3949,6 @@
           ctx.fill();
           ctx.stroke();
 
-          // Multi-lobed botanical canopy
           ctx.globalAlpha = canopyAlpha;
           const baseColor =
             t.kind === 'acacia' ? PALETTE.sage : t.kind === 'olive' ? PALETTE.olive : PALETTE.sageLight;
@@ -3240,7 +3957,6 @@
 
           ctx.translate(t.x + swayX, t.y + swayY);
 
-          // Main crown
           ctx.fillStyle = baseColor;
           ctx.strokeStyle = PALETTE.outline;
           ctx.lineWidth = 2.4;
@@ -3250,7 +3966,6 @@
           ctx.stroke();
 
           if (quality === 'high') {
-            // Secondary organic sub-canopy lobes
             const lobes = [
               { x: -t.r * 0.36, y: -t.r * 0.28, r: t.r * 0.62 },
               { x: t.r * 0.34, y: -t.r * 0.22, r: t.r * 0.56 },
@@ -3263,7 +3978,6 @@
               ctx.fill();
             }
 
-            // Sunlit top-left botanical leaf cluster highlight
             ctx.fillStyle = 'rgba(244, 241, 234, 0.16)';
             ctx.beginPath();
             ctx.arc(-t.r * 0.32, -t.r * 0.32, t.r * 0.42, 0, Math.PI * 2);
@@ -3278,7 +3992,6 @@
             const flap = Math.sin(b.wingPhase) * 5.5;
             const angle = Math.atan2(b.vy, b.vx);
 
-            // Distant bird ground shadow
             ctx.save();
             ctx.translate(b.x + 45, b.y + 68);
             ctx.rotate(angle);
@@ -3288,7 +4001,6 @@
             ctx.fill();
             ctx.restore();
 
-            // Bird silhouette in flight
             ctx.save();
             ctx.translate(b.x, b.y);
             ctx.rotate(angle);
@@ -3350,6 +4062,7 @@
           this.buildingModalArt = document.getElementById('building-modal-art');
           this.buildingModalDesc = document.getElementById('building-modal-desc');
           this.buildingLinkSite = document.getElementById('building-link-site');
+          this.buildingLinkSiteLabel = document.getElementById('building-link-site-label');
           this.buildingLinkGithub = document.getElementById('building-link-github');
 
           this.modalProjectsBackdrop = document.getElementById('modal-projects-backdrop');
@@ -3534,6 +4247,9 @@
           this.buildingModalTitle.textContent = b.displayTitle;
           this.buildingModalDesc.textContent = b.description;
           this.buildingLinkSite.href = b.siteUrl;
+          if (this.buildingLinkSiteLabel) {
+            this.buildingLinkSiteLabel.textContent = b.siteLabel || 'Открыть сайт';
+          }
           this.buildingLinkGithub.href = b.githubUrl;
 
           // Bespoke architectural vector banner inside card
@@ -3550,6 +4266,23 @@
                 <rect x="318" y="16" width="22" height="26" rx="2" fill="#2E5A44"/>
                 <rect x="346" y="16" width="22" height="26" rx="2" fill="#6B7D57"/>
                 <rect x="374" y="16" width="22" height="26" rx="2" fill="#9A744C"/>
+              </svg>
+            `;
+          } else if (b.id === 'elephantkeeper') {
+            this.buildingModalArt.innerHTML = `
+              <svg width="100%" height="58" viewBox="0 0 420 58" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <rect x="6" y="8" width="124" height="42" rx="6" fill="#E4CF9C" stroke="#2C302E" stroke-width="2"/>
+                <line x1="28" y1="8" x2="28" y2="50" stroke="#2C302E" stroke-width="2"/>
+                <line x1="52" y1="8" x2="52" y2="50" stroke="#2C302E" stroke-width="2"/>
+                <line x1="76" y1="8" x2="76" y2="50" stroke="#2C302E" stroke-width="2"/>
+                <rect x="92" y="16" width="26" height="26" rx="4" fill="#86ADA7" stroke="#2C302E" stroke-width="1.8"/>
+                <circle cx="210" cy="29" r="21" fill="#A96B3B" stroke="#2C302E" stroke-width="2"/>
+                <path d="M200 28c0-6 5-10 11-10s10 4 10 10c0 5-3 8-3 12" stroke="#F4F1EA" stroke-width="2.5" stroke-linecap="round"/>
+                <circle cx="207" cy="26" r="1.6" fill="#F4F1EA"/>
+                <rect x="290" y="8" width="124" height="42" rx="6" fill="#F4F1EA" stroke="#2C302E" stroke-width="2"/>
+                <rect x="304" y="16" width="38" height="26" rx="4" fill="#A96B3B" stroke="#2C302E" stroke-width="1.6"/>
+                <circle cx="364" cy="29" r="10" fill="#2E5A44" stroke="#2C302E" stroke-width="1.8"/>
+                <circle cx="392" cy="29" r="10" fill="#C86D51" stroke="#2C302E" stroke-width="1.8"/>
               </svg>
             `;
           } else {
@@ -3691,7 +4424,23 @@
             }
           });
 
+          window.__ERS_GAME__ = this;
           requestAnimationFrame((ts) => this.loop(ts));
+        }
+
+        isPlayerAtBuildingEntrance(b) {
+          if (Math.hypot(this.player.x - b.doorX, this.player.y - b.doorY) <= b.interactRadius) {
+            return true;
+          }
+          if (b.secondaryDoors) {
+            for (const sd of b.secondaryDoors) {
+              const rad = sd.interactRadius || b.interactRadius;
+              if (Math.hypot(this.player.x - sd.x, this.player.y - sd.y) <= rad) {
+                return true;
+              }
+            }
+          }
+          return false;
         }
 
         bindCanvasPointer() {
@@ -3703,24 +4452,32 @@
             const rect = this.canvas.getBoundingClientRect();
             const worldPt = this.camera.screenToWorld(e.clientX, e.clientY, rect);
 
-            // Check if user clicked/tapped directly on one of the two project buildings or its entrance porch
+            // Check if user clicked/tapped directly on one of the project buildings or its entrance porches
             let clickedBuilding = null;
             for (const b of BUILDINGS) {
               const inBody =
                 worldPt.x >= b.x - 12 &&
                 worldPt.x <= b.x + b.w + 12 &&
-                worldPt.y >= b.y - 12 &&
+                worldPt.y >= b.y - 45 &&
                 worldPt.y <= b.y + b.h + 55;
               const inDoor = Math.hypot(worldPt.x - b.doorX, worldPt.y - b.doorY) <= b.interactRadius;
-              if (inBody || inDoor) {
+              let inSecondaryDoor = false;
+              if (b.secondaryDoors) {
+                for (const sd of b.secondaryDoors) {
+                  if (Math.hypot(worldPt.x - sd.x, worldPt.y - sd.y) <= (sd.interactRadius || b.interactRadius)) {
+                    inSecondaryDoor = true;
+                    break;
+                  }
+                }
+              }
+              if (inBody || inDoor || inSecondaryDoor) {
                 clickedBuilding = b;
                 break;
               }
             }
 
             if (clickedBuilding) {
-              const distToDoor = Math.hypot(this.player.x - clickedBuilding.doorX, this.player.y - clickedBuilding.doorY);
-              if (distToDoor <= clickedBuilding.interactRadius) {
+              if (this.isPlayerAtBuildingEntrance(clickedBuilding)) {
                 this.ui.openBuildingModal(clickedBuilding);
               } else {
                 this.walkPlayerToBuilding(clickedBuilding);
@@ -3741,13 +4498,36 @@
 
         walkPlayerToBuilding(building) {
           const waypoints = [];
-          // Route smoothly via the building's forecourt avenue if coming from across the plaza
-          if (Math.abs(this.player.x - building.doorX) > 220) {
-            waypoints.push({ x: building.doorX, y: 860 });
+          let destX = building.doorX;
+          let destY = building.doorY + 6;
+
+          if (building.id === 'elephantkeeper' && building.secondaryDoors && building.secondaryDoors.length > 0) {
+            // If player is in the north/central campus, walk straight to the North Plaza Porch of Elephant Keeper
+            if (this.player.y < building.y + building.h * 0.5) {
+              const nd = building.secondaryDoors[0];
+              destX = nd.x;
+              destY = nd.y - 4;
+              if (this.player.y < 820) {
+                waypoints.push({ x: 1120, y: 880 });
+              }
+            } else {
+              // Approaching from southern promenade loop
+              destX = building.doorX;
+              destY = building.doorY + 6;
+            }
+          } else {
+            // Route smoothly via the building's forecourt avenue if coming from across the plaza
+            if (this.player.y > 1050) {
+              waypoints.push({ x: 1120, y: 880 });
+            }
+            if (Math.abs(this.player.x - building.doorX) > 220) {
+              waypoints.push({ x: building.doorX, y: 840 });
+            }
           }
+
           this.input.pointerTarget = {
-            x: building.doorX,
-            y: building.doorY + 6,
+            x: destX,
+            y: destY,
             waypoints: waypoints,
             building: building
           };
@@ -3790,10 +4570,20 @@
           let best = null;
           let bestDist = Infinity;
           for (const b of BUILDINGS) {
-            const d = Math.hypot(this.player.x - b.doorX, this.player.y - b.doorY);
-            if (d <= b.interactRadius && d < bestDist) {
-              bestDist = d;
+            const dMain = Math.hypot(this.player.x - b.doorX, this.player.y - b.doorY);
+            if (dMain <= b.interactRadius && dMain < bestDist) {
+              bestDist = dMain;
               best = b;
+            }
+            if (b.secondaryDoors) {
+              for (const sd of b.secondaryDoors) {
+                const rad = sd.interactRadius || b.interactRadius;
+                const dSec = Math.hypot(this.player.x - sd.x, this.player.y - sd.y);
+                if (dSec <= rad && dSec < bestDist) {
+                  bestDist = dSec;
+                  best = b;
+                }
+              }
             }
           }
           return best;
@@ -3843,8 +4633,7 @@
         }
 
         loop(timestamp) {
-          const isModalOpen = Boolean(this.ui && this.ui.activeModal);
-          if (!this.isTabHidden && !isModalOpen) {
+          if (!this.isTabHidden) {
             const rawDt = (timestamp - this.lastTimestamp) / 1000;
             this.lastTimestamp = timestamp;
             const dt = Math.min(Math.max(rawDt, 0.001), 0.05);
@@ -3860,7 +4649,7 @@
             Boolean(this.input.pointerTarget) ||
             this.input.keys.size > 0 ||
             this.input.joyActive;
-          const nextDelay = isModalOpen ? 100 : isMoving ? 14 : 36;
+          const nextDelay = isMoving ? 14 : 36;
 
           setTimeout(() => {
             requestAnimationFrame((ts) => this.loop(ts));

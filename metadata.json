@@ -1,6 +1,6 @@
 {
   "name": "Elephant Research Station",
-  "description": "Интерактивный био-минималистичный кампус научно-исследовательской станции для доступа к проектам Elephantology и Elephantorina.",
+  "description": "Интерактивный био-минималистичный кампус научно-исследовательской станции для доступа к проектам Elephantology, Elephantorina и симулятору смотрителя Elephant Keeper.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

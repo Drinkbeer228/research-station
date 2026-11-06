@@ -51,32 +51,47 @@ test('resolveAllCollisions resolves multi-collider corners and world bounds', ()
   assert.equal(Math.round(r.x), 384);
 });
 
-test('findActiveBuilding detects Elephantology and Elephantorina entrance proximity', () => {
+test('findActiveBuilding detects Elephantology, Elephantorina, and Elephant Keeper entrance proximity', () => {
   const buildings: BuildingZone[] = [
     {
       id: 'elephantology',
       title: 'ELEPHANTOLOGY',
-      doorX: 640,
-      doorY: 640,
-      interactRadius: 85,
-      bounds: { x: 450, y: 360, w: 380, h: 250 },
+      doorX: 675,
+      doorY: 768,
+      interactRadius: 96,
+      bounds: { x: 480, y: 495, w: 390, h: 245 },
     },
     {
       id: 'elephantorina',
       title: 'ELEPHANTORINA',
-      doorX: 1760,
-      doorY: 640,
-      interactRadius: 85,
-      bounds: { x: 1570, y: 360, w: 380, h: 250 },
+      doorX: 1725,
+      doorY: 768,
+      interactRadius: 96,
+      bounds: { x: 1530, y: 495, w: 390, h: 245 },
+    },
+    {
+      id: 'elephantkeeper',
+      title: 'ELEPHANT KEEPER',
+      doorX: 990,
+      doorY: 1388,
+      interactRadius: 96,
+      secondaryDoors: [{ x: 990, y: 1090, interactRadius: 96 }],
+      bounds: { x: 780, y: 1115, w: 420, h: 245 },
     },
   ];
 
-  assert.equal(findActiveBuilding(1200, 1000, buildings), null);
-  const b1 = findActiveBuilding(640, 690, buildings);
+  assert.equal(findActiveBuilding(1200, 860, buildings), null);
+  const b1 = findActiveBuilding(675, 790, buildings);
   assert.equal(b1?.id, 'elephantology');
 
-  const b2 = findActiveBuilding(1750, 680, buildings);
+  const b2 = findActiveBuilding(1725, 790, buildings);
   assert.equal(b2?.id, 'elephantorina');
+
+  const b3South = findActiveBuilding(990, 1410, buildings);
+  assert.equal(b3South?.id, 'elephantkeeper');
+
+  const b3North = findActiveBuilding(990, 1075, buildings);
+  assert.equal(b3North?.id, 'elephantkeeper');
 });
 
 test('evaluateDogState transitions companion between follow, idle, and sit naturally', () => {

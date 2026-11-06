@@ -16,11 +16,12 @@ export interface CircleCollider {
 export type Collider = RectCollider | CircleCollider;
 
 export interface BuildingZone {
-  id: 'elephantology' | 'elephantorina';
+  id: 'elephantology' | 'elephantorina' | 'elephantkeeper';
   title: string;
   doorX: number;
   doorY: number;
   interactRadius: number;
+  secondaryDoors?: Array<{ x: number; y: number; interactRadius?: number }>;
   bounds: { x: number; y: number; w: number; h: number };
 }
 
@@ -155,10 +156,20 @@ export function findActiveBuilding(
   let bestDist = Infinity;
 
   for (const b of buildings) {
-    const d = Math.hypot(px - b.doorX, py - b.doorY);
-    if (d <= b.interactRadius && d < bestDist) {
-      bestDist = d;
+    const dMain = Math.hypot(px - b.doorX, py - b.doorY);
+    if (dMain <= b.interactRadius && dMain < bestDist) {
+      bestDist = dMain;
       closest = b;
+    }
+    if (b.secondaryDoors) {
+      for (const sd of b.secondaryDoors) {
+        const rad = sd.interactRadius ?? b.interactRadius;
+        const dSec = Math.hypot(px - sd.x, py - sd.y);
+        if (dSec <= rad && dSec < bestDist) {
+          bestDist = dSec;
+          closest = b;
+        }
+      }
     }
   }
   return closest;
