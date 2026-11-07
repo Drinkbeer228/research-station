@@ -421,12 +421,16 @@ git commit -m "feat: validate structured authors and editors"
 - Create: `elephantology/scripts/library/blocks.ts` — rehype-плагин блоков, вклеек, ссылок, изображений, атрибутов
 - Create: `elephantology/scripts/library/sanitizeSchema.ts` — схема `rehype-sanitize` (раздел 11 спецификации плюс MathML)
 - Create: `elephantology/src/lib/remarkDisplayMath.ts` — remark-плагин: абзац, в котором только формула `$$…$$`, становится выключной формулой (таблица «Преобразования» спецификации)
+- Create: `elephantology/src/lib/remarkRawBreaks.ts` — remark-плагин: сырой HTML-узел `<br>` становится переносом строки
+- Create: `elephantology/scripts/library/repairMath.ts` — remark-плагин: управляющие символы в формулах возвращаются к командам
+- Create: `elephantology/tsconfig.scripts.json` — проверка типов `scripts/**/*.ts` (lib ES2022, types node); скрипт `typecheck` проверяет оба проекта
 - Modify: `elephantology/package.json` — devDependencies: `tsx@^4.23.15`, `unified`, `remark-parse`, `remark-rehype`, `rehype-stringify`, `image-size@^2.1.0`
 - Test: `elephantology/scripts/library/__tests__/renderBook.test.ts`, `elephantology/scripts/library/__tests__/schema.test.ts`
 
 **Interfaces:**
 - Consumes: `cleanArticleMarkdownBody`, `slugifyHeading` (`src/services/referenceService.ts`); `ReferenceItem` и `Contributor` (`src/types.ts`, Task 5)
 - Produces (`src/lib/remarkDisplayMath.ts`): `export function remarkDisplayMath(): (tree: Root, file: VFile) => void` — в конвейере книги сразу после `remark-math`. Сайт его пока не подключает: это решает автор.
+- Produces (`src/lib/remarkRawBreaks.ts`): `export function remarkRawBreaks(): (tree: Root) => void` — в конвейере книги после `remarkDisplayMath`. Сайт его тоже пока не подключает.
 - Produces (`schema.ts`):
 
 ```ts
@@ -438,7 +442,7 @@ export interface BookFile { schema: typeof BOOK_SCHEMA; id: string; contentHash:
 export interface Discipline { id: string; name: string; order: number; description: string }
 export interface CatalogBook { id: string; discipline: string; kind: 'article' | 'overview' | 'reference'; title: string; shortTitle: string; shortTitleFrom: 'frontmatter' | 'derived'; description: string; tags: string[]; difficulty: string | null; evidenceLevel: string | null; evidenceBasis: string[]; readingMinutes: number; chars: number; lastReviewed: string | null; contributors: Contributor[]; contributorsText: string | null; headings: Heading[]; related: string[]; siteUrl: string; contentUrl: string; contentHash: string; missingSources: number }
 export interface CatalogFile { schema: typeof CATALOG_SCHEMA; generatedAt: string; source: { commit: string; site: string }; disciplines: Discipline[]; books: CatalogBook[] }
-export interface BuildIssue { book: string; kind: 'missing-source' | 'unresolved-link' | 'katex' | 'missing-image'; detail: string }
+export interface BuildIssue { book: string; kind: 'missing-source' | 'unresolved-link' | 'katex' | 'missing-image' | 'repaired-math'; detail: string }
 export function validateCatalog(x: unknown): string[];
 export function validateBook(x: unknown): string[];
 ```
@@ -453,7 +457,7 @@ export function classifyCodeBlock(text: string): { kind: 'diagram' | 'wrap'; col
 export function missingNoteLabel(key: string): string;
 ```
 
-Конвейер: `cleanArticleMarkdownBody` → разбивка `[^a, ^b]` на `[^a][^b]` вне блоков кода → `remark-parse` → `remark-gfm` → `remark-math` → `remarkDisplayMath` → `notes.ts` → `remark-rehype` (без собственного раздела сносок) → `rehype-katex` (`output: 'mathml'`, `throwOnError: false`) → `blocks.ts` → `rehype-sanitize` (`sanitizeSchema.ts`) → `rehype-stringify`. Ошибки KaTeX (элементы `.katex-error`) идут в `issues` с видом `katex`.
+Конвейер: `cleanArticleMarkdownBody` → разбивка `[^a, ^b]` на `[^a][^b]` вне блоков кода → `remark-parse` → `remark-gfm` → `remark-math` → `remarkDisplayMath` → `remarkRawBreaks` → `repairMath.ts` → `notes.ts` → `remark-rehype` (без собственного раздела сносок) → `rehype-katex` (`output: 'mathml'`, `strict: 'ignore'`) → `blocks.ts` → `rehype-sanitize` (`sanitizeSchema.ts`) → `rehype-stringify`. Ошибки KaTeX идут в `issues` с видом `katex`, по одной на формулу. Их источник — сообщения `rehype-katex` в VFile: после неизвестной команды KaTeX восстанавливается без элемента `.katex-error`. `throwOnError` не передаётся: `rehype-katex` 7 его не принимает и сам повторяет разбор мягко. `strict: 'ignore'` убирает 118 предупреждений о Unicode в формулах, вид формул от него не меняется.
 
 Правила (раздел 5.1 спецификации):
 
@@ -466,7 +470,9 @@ export function missingNoteLabel(key: string): string;
 - **Блоки кода:** `classifyCodeBlock` — `wrap`, если самая длинная строка длиннее 118 знаков и в тексте нет символов `─│┌┐└┘├┤┬┴┼═║╔╗╚╝╭╮▼▲►◄→←↑↓█▓▒`, иначе `diagram`. `diagram` → `<figure class="plate" data-kind="diagram" data-cols data-lines><pre>`, `wrap` → `<pre class="wrap">`.
 - **Таблицы:** `<figure class="plate" data-kind="table">`.
 - **Выключные формулы.** Абзац, в котором нет ничего, кроме одной формулы, записанной как `$$…$$`, заменяется узлом `math` с теми же `data`, что `remark-math` даёт блоку `$$` на отдельных строках; `rehype-katex` выводит его как `<math display="block">`. Запись `$$` узнаётся по исходному тексту на месте узла (`position`). Формулы `$…$` и `$$…$$` внутри текста остаются строчными. Так записаны все 32 выключные формулы корпуса.
-- **Атрибуты:** у дочерних элементов корня `data-b="0…n-1"`, у `h2` и `h3` — `data-h` из `slugifyHeading`. Атрибутов `id` в выходе нет.
+- **`<br>` в ячейках.** Сырой HTML-узел, равный `<br>`, `<br/>` или `<br />` без учёта регистра, становится переносом строки. Другой сырой HTML отбрасывается, как на сайте.
+- **Управляющие символы в формулах.** В значениях узлов `math` и `inlineMath` символы `U+0007`, `U+0008`, `U+000B` и `U+000C` заменяются на `\a`, `\b`, `\v` и `\f`. На каждую такую формулу — запись `repaired-math` с исходной и исправленной формулой. Файлы статей не меняются.
+- **Атрибуты:** у каждого дочернего элемента корня, включая `figure` вклеек и выключные формулы, `data-b="0…n-1"`; у `h2` и `h3` — `data-h` из `slugifyHeading`. Атрибутов `id` в выходе нет.
 
 - [ ] **Step 1: Write the failing tests**
 
@@ -523,8 +529,8 @@ describe('renderBook', () => {
   });
   it('wraps diagrams and tables as plates, numbers blocks, has no ids', async () => {
     const r = await render('## 1. Раздел\n\nТекст.\n\n```text\n┌──┐\n└──┘\n```\n\n| a | b |\n|---|---|\n| 1 | 2 |');
-    expect(r.html).toContain('<figure class="plate" data-kind="diagram" data-cols="4" data-lines="2">');
-    expect(r.html).toContain('<figure class="plate" data-kind="table">');
+    expect(r.html).toContain('<figure class="plate" data-kind="diagram" data-cols="4" data-lines="2" data-b="2">');
+    expect(r.html).toContain('<figure class="plate" data-kind="table" data-b="3">');
     expect(r.html).toContain('data-h="1-раздел"');
     expect(r.blocks).toBe(4);
     expect(r.html).not.toMatch(/\sid="/);
@@ -572,7 +578,7 @@ Expected: PASS
 - [ ] **Step 5: Commit**
 
 ```bash
-git add scripts/library src/lib/remarkDisplayMath.ts package.json package-lock.json
+git add scripts/library src/lib/remarkDisplayMath.ts src/lib/remarkRawBreaks.ts tsconfig.scripts.json package.json package-lock.json
 git commit -m "feat: render articles into sanitized library books"
 ```
 
@@ -657,7 +663,7 @@ git commit -m "feat: build the library catalog from docs"
 - Modify: `elephantology/package.json` — скрипт `"build:library": "tsx scripts/build-library.ts --docs=./docs --public=./public --out=./dist/library --site=https://drinkbeer228.github.io/elephantology"` и `&& npm run build:library` в конце `build`
 
 **Interfaces:**
-- Produces: `dist/library/**`. Код выхода 1, если `schemaErrors.length > 0`, `books < articles` или `katexErrors > 0`. В конце печатается отчёт: число книг, ошибки KaTeX, сноски без источника по статьям, неразрешённые ссылки.
+- Produces: `dist/library/**`. Код выхода 1, если `schemaErrors.length > 0`, `books < articles` или `katexErrors > 0`. В конце печатается отчёт: число книг, ошибки KaTeX, сноски без источника по статьям, неразрешённые ссылки, восстановленные формулы по статьям.
 
 - [ ] **Step 1: Run the build**
 
@@ -666,6 +672,7 @@ Expected:
 
 - выход 0;
 - в отчёте 70 книг (68 статей и 2 справочника), `katexErrors: 0`;
+- 6 восстановленных формул (`repaired-math`) в `conservation/cites-mike-and-anti-poaching-monitoring` и `conservation/translocation-reintroduction-and-metapopulations`;
 - в топе сносок без источника `ecology/ontogeny-and-life-history`, `veterinary/clinical-welfare-and-protected-contact` и `conservation/spatial-ecology-and-connectivity-corridors`;
 - PDF в `dist/` нет.
 
@@ -1286,7 +1293,7 @@ Expected: FAIL
 
 - [ ] **Step 3: Реализовать `turn.ts`, `reader.ts`, `open.ts`, `reader.css`**
 
-Вид — по черновику `library-preview.html`: стол, лампа, стопка с котом, бумага, рамка 1,6 px цвета `#2C302E`. Длительности — из Global Constraints. Выключная формула `math[display="block"]` стоит по центру, с отступом в пол-строки сверху и снизу, и не разрывается между страницами.
+Вид — по черновику `library-preview.html`: стол, лампа, стопка с котом, бумага, рамка 1,6 px цвета `#2C302E`. Длительности — из Global Constraints. Выключная формула `math[display="block"]` стоит по центру, с отступом в пол-строки сверху и снизу, и не разрывается между страницами. `hr` — короткая линейка по центру; `h4`–`h6` — полужирные подзаголовки внутри раздела, в оглавление не попадают; `del` — зачёркнутый текст.
 
 - [ ] **Step 4: Run tests and look at the book**
 
