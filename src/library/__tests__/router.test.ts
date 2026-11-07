@@ -9,6 +9,13 @@ test('parses library routes', () => {
   assert.deepEqual(parseRoute('#/library/glossary'), { kind: 'book', id: 'glossary' });
 });
 
+test('handles hall and catalog edges', () => {
+  assert.deepEqual(parseRoute('#/library/'), { kind: 'hall' });
+  assert.deepEqual(parseRoute('#/library/catalog'), { kind: 'catalog', q: '' });
+  assert.equal(parseRoute('#/library?glossary'), null);
+  assert.equal(parseRoute('#/library?q=x'), null);
+});
+
 test('rejects garbage', () => {
   for (const h of ['', '#', '#/other', '#/library/../x', '#/library/a/b/c', '#/library/ANATOMY/x y', '#/library/<script>/x']) {
     assert.equal(parseRoute(h), null, h);

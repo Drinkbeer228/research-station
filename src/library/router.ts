@@ -4,7 +4,7 @@ const PREFIX = '#/library';
 const BOOK_ID = /^(?:[a-z]+\/)?[a-z0-9-]+$/;
 
 export function parseRoute(hash: string): Route | null {
-  if (hash !== PREFIX && !hash.startsWith(PREFIX + '/') && !hash.startsWith(PREFIX + '?')) return null;
+  if (hash !== PREFIX && !hash.startsWith(PREFIX + '/')) return null;
   const rest = hash.slice(PREFIX.length);
   if (rest === '' || rest === '/') return { kind: 'hall' };
   if (rest === '/catalog' || rest.startsWith('/catalog?')) {
