@@ -32,7 +32,8 @@ async function getJson(fetchFn: typeof fetch, url: string, notFoundIsMissing: bo
   try {
     return await res.json();
   } catch {
-    throw new LibraryError('schema', 'Библиотека вернула данные в неизвестном формате.');
+    // A truncated or intercepted body (e.g. a captive-portal page) is a connection problem.
+    throw new LibraryError('network', 'Ответ библиотеки получен не полностью. Проверьте подключение и попробуйте ещё раз.');
   }
 }
 
@@ -50,7 +51,7 @@ function parseBook(x: unknown, entry: CatalogBook): BookFile {
   return x as unknown as BookFile;
 }
 
-/** Loads the catalog and caches it. If loading fails and a cached copy exists, returns that copy with `stale: true`. */
+/** Loads the catalog and caches it. If loading fails with a network error and a cached copy exists, returns that copy with `stale: true`. */
 export async function loadCatalog(deps: { fetch: typeof fetch; store: Store; base?: string }): Promise<CatalogResult> {
   const base = deps.base ?? LIBRARY_BASE;
   try {
@@ -60,7 +61,8 @@ export async function loadCatalog(deps: { fetch: typeof fetch; store: Store; bas
     });
     return { catalog, stale: false };
   } catch (e) {
-    const cached = deps.store.read().catalogCache;
+    // Only a connection problem falls back to the cache; an unknown schema is never masked.
+    const cached = e instanceof LibraryError && e.kind === 'network' ? deps.store.read().catalogCache : null;
     if (cached) return { catalog: cached.catalog, stale: true };
     throw e;
   }

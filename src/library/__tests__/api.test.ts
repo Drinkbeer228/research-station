@@ -43,9 +43,22 @@ test('rejects unknown schemas', async () => {
 test('rejects a catalog without books', async () => {
   await assert.rejects(loadCatalog({ fetch: okJson({ ...catalogFixture, books: null }), store: memoryStore() }), { kind: 'schema' });
 });
-test('rejects invalid JSON as schema', async () => {
+test('treats invalid JSON as a network error', async () => {
   const f = (async () => new Response('<html>')) as typeof fetch;
-  await assert.rejects(loadCatalog({ fetch: f, store: memoryStore() }), { kind: 'schema' });
+  await assert.rejects(loadCatalog({ fetch: f, store: memoryStore() }), { kind: 'network' });
+});
+test('falls back to the cache when the body is not JSON', async () => {
+  const store = memoryStore({ catalogCache: { generatedAt: 'x', catalog: catalogFixture } });
+  const f = (async () => new Response('<html>portal</html>')) as typeof fetch;
+  assert.equal((await loadCatalog({ fetch: f, store })).stale, true);
+});
+test('an unknown schema rejects even when a cache exists', async () => {
+  const store = memoryStore({ catalogCache: { generatedAt: 'x', catalog: catalogFixture } });
+  await assert.rejects(loadCatalog({ fetch: okJson({ ...catalogFixture, schema: 'elephantology.library/2' }), store }), { kind: 'schema' });
+});
+test('treats a book body that is not JSON as a network error', async () => {
+  const f = (async () => new Response('<html>')) as typeof fetch;
+  await assert.rejects(loadBook(glossary, { fetch: f }), { kind: 'network' });
 });
 test('loads a book from base + contentUrl', async () => {
   const urls: string[] = [];
