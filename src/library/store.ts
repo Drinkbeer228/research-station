@@ -24,6 +24,21 @@ function clampFont(x: unknown): number {
   return Math.min(MAX_FONT, Math.max(MIN_FONT, Math.round(x)));
 }
 
+// A usable anchor has finite b and o, a string h if present, and f in [0, 1] if present.
+function anchor(x: unknown): Anchor | null {
+  if (!isObject(x) || !Number.isFinite(x.b) || !Number.isFinite(x.o)) return null;
+  const a: Anchor = { b: x.b as number, o: x.o as number };
+  if (x.h !== undefined) {
+    if (typeof x.h !== 'string') return null;
+    a.h = x.h;
+  }
+  if (x.f !== undefined) {
+    if (!Number.isFinite(x.f) || (x.f as number) < 0 || (x.f as number) > 1) return null;
+    a.f = x.f as number;
+  }
+  return a;
+}
+
 function latestOpened(b: BookMemory): string {
   return b.opened.reduce((m, d) => (d > m ? d : m), '');
 }
@@ -38,19 +53,26 @@ function normalize(x: unknown): LibraryState {
     out.current = { book: x.current.book, seat: typeof x.current.seat === 'number' ? x.current.seat : null };
   }
   if (isObject(x.catalogCache) && typeof x.catalogCache.generatedAt === 'string' && isObject(x.catalogCache.catalog)) {
-    out.catalogCache = { generatedAt: x.catalogCache.generatedAt, catalog: x.catalogCache.catalog as unknown as CatalogFile };
+    const c = x.catalogCache.catalog;
+    if (c.schema === 'elephantology.library/1' && Array.isArray(c.books) && Array.isArray(c.disciplines)) {
+      out.catalogCache = { generatedAt: x.catalogCache.generatedAt, catalog: c as unknown as CatalogFile };
+    }
   }
   const books: Array<[string, BookMemory]> = [];
   if (isObject(x.books)) {
     for (const [id, raw] of Object.entries(x.books)) {
       if (!isObject(raw)) continue;
       const dates = (v: unknown) => (Array.isArray(v) ? v.filter((d): d is string => typeof d === 'string') : []).slice(-MAX_DATES);
-      const bookmarks = Array.isArray(raw.bookmarks)
-        ? raw.bookmarks.filter((m): m is Anchor & { t: string } => isObject(m) && typeof m.b === 'number' && typeof m.o === 'number' && typeof m.t === 'string')
-        : [];
+      const bookmarks: Array<Anchor & { t: string }> = [];
+      if (Array.isArray(raw.bookmarks)) {
+        for (const m of raw.bookmarks) {
+          const a = anchor(m);
+          if (a && typeof (m as Record<string, unknown>).t === 'string') bookmarks.push({ ...a, t: (m as { t: string }).t });
+        }
+      }
       books.push([id, {
         hash: typeof raw.hash === 'string' ? raw.hash : '',
-        at: isObject(raw.at) && typeof raw.at.b === 'number' && typeof raw.at.o === 'number' ? (raw.at as unknown as Anchor) : null,
+        at: anchor(raw.at),
         bookmarks: bookmarks.slice(-MAX_BOOKMARKS),
         opened: dates(raw.opened),
         finished: dates(raw.finished),
@@ -70,33 +92,38 @@ function normalize(x: unknown): LibraryState {
 
 const clone = (s: LibraryState): LibraryState => JSON.parse(JSON.stringify(s)) as LibraryState;
 
-/** Reader memory in `storage`. With no storage, or storage that throws or holds junk, the state lives in memory. */
+/**
+ * Reader memory in `storage`. Storage is read once, when the store is created; after that memory is the source
+ * of truth, so a failed write (quota, denied) never reverts the session. With no storage, or storage that throws
+ * or holds junk, the state lives in memory.
+ */
 export function createStore(storage: Pick<Storage, 'getItem' | 'setItem'> | null, key: string = DEFAULT_KEY): Store {
   let memory: LibraryState = defaults();
-
-  function load(): LibraryState {
-    if (storage) {
-      try {
-        const raw = storage.getItem(key);
-        if (raw !== null) memory = normalize(JSON.parse(raw));
-      } catch {
-        // Storage unavailable or corrupt: keep the in-memory state.
-      }
+  if (storage) {
+    try {
+      const raw = storage.getItem(key);
+      if (raw !== null) memory = normalize(JSON.parse(raw));
+    } catch {
+      // Storage unavailable or corrupt: start from defaults.
     }
-    return memory;
   }
 
   return {
-    read: () => clone(load()),
+    read: () => clone(memory),
     write(mutate) {
-      const draft = clone(load());
+      const draft = clone(memory);
       mutate(draft);
       memory = normalize(draft);
       if (!storage) return;
       try {
         storage.setItem(key, JSON.stringify(memory));
       } catch {
-        // Quota or denied: the change stays in memory.
+        // The catalog cache is the bulk of the state: retry without it so the reader's own memory still persists.
+        try {
+          storage.setItem(key, JSON.stringify({ ...memory, catalogCache: null }));
+        } catch {
+          // Still failing: the change stays in memory only.
+        }
       }
     },
   };

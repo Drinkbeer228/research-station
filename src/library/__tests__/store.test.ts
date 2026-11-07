@@ -89,3 +89,67 @@ test('a mutator that throws leaves state unchanged', () => {
   assert.throws(() => s.write((st) => { st.settings.fontSize = 20; throw new Error('boom'); }));
   assert.equal(s.read().settings.fontSize, 17);
 });
+
+function stored(state: object): string {
+  return JSON.stringify({ v: 1, current: null, books: {}, settings: { fontSize: 17, theme: 'paper' }, catalogCache: null, ...state });
+}
+
+test('memory stays authoritative when setItem fails but getItem returns prior data', () => {
+  const prior = stored({ settings: { fontSize: 16, theme: 'paper' } });
+  const storage = { getItem: () => prior, setItem: () => { throw new Error('quota'); } };
+  const s = createStore(storage);
+  s.write((st) => { st.settings.fontSize = 20; });
+  assert.equal(s.read().settings.fontSize, 20);
+  s.write((st) => { st.settings.theme = 'lamp'; });
+  const st = s.read();
+  assert.equal(st.settings.fontSize, 20);
+  assert.equal(st.settings.theme, 'lamp');
+});
+
+test('retries a failed write without catalogCache and keeps the cache in memory', () => {
+  const data = new Map<string, string>();
+  const storage = {
+    getItem: (k: string) => data.get(k) ?? null,
+    setItem: (k: string, v: string) => {
+      if (JSON.parse(v).catalogCache !== null) throw new Error('quota');
+      data.set(k, v);
+    },
+  };
+  const s = createStore(storage);
+  const catalog = { schema: 'elephantology.library/1', generatedAt: '2026-11-07T00:00:00Z', source: { commit: 'c', site: 'https://x' }, disciplines: [], books: [] };
+  s.write((st) => {
+    st.settings.fontSize = 19;
+    st.catalogCache = { generatedAt: catalog.generatedAt, catalog: catalog as never };
+  });
+  assert.notEqual(s.read().catalogCache, null);
+  const persisted = JSON.parse(data.get('ers_library_v1') as string);
+  assert.equal(persisted.settings.fontSize, 19);
+  assert.equal(persisted.catalogCache, null);
+});
+
+test('drops a catalogCache that does not look like a catalog', () => {
+  const bad = (catalog: object) => createStore(fakeStorage({ ers_library_v1: stored({ catalogCache: { generatedAt: 'x', catalog } }) })).read().catalogCache;
+  assert.equal(bad({ schema: 'other/1', books: [], disciplines: [] }), null);
+  assert.equal(bad({ schema: 'elephantology.library/1', books: {}, disciplines: [] }), null);
+  assert.equal(bad({ schema: 'elephantology.library/1', books: [] }), null);
+  assert.notEqual(bad({ schema: 'elephantology.library/1', books: [], disciplines: [] }), null);
+});
+
+test('drops invalid anchors and bookmarks', () => {
+  const book = (extra: object) => ({ hash: 'h', at: null, bookmarks: [], opened: [], finished: [], ...extra });
+  const books = {
+    nan: book({ at: { b: NaN, o: 0 }, bookmarks: [{ b: 1, o: 2, t: 'ok' }, { b: 1, o: Infinity, t: 'bad' }] }),
+    f: book({ at: { b: 1, o: 2, f: 1.5 } }),
+    h: book({ at: { b: 1, o: 2, h: 5 } }),
+    good: book({ at: { b: 1, o: 2, h: 'sec', f: 0.5 } }),
+  };
+  // JSON turns NaN into null, so also check mutated state.
+  const s = createStore(fakeStorage({ ers_library_v1: stored({ books }) }));
+  s.write((st) => { st.books.nan.at = { b: NaN, o: 0 }; });
+  const r = s.read().books;
+  assert.equal(r.nan.at, null);
+  assert.deepEqual(r.nan.bookmarks, [{ b: 1, o: 2, t: 'ok' }]);
+  assert.equal(r.f.at, null);
+  assert.equal(r.h.at, null);
+  assert.deepEqual(r.good.at, { b: 1, o: 2, h: 'sec', f: 0.5 });
+});
