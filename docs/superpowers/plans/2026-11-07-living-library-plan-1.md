@@ -663,15 +663,15 @@ git commit -m "feat: build the library catalog from docs"
 - Modify: `elephantology/package.json` — скрипт `"build:library": "tsx scripts/build-library.ts --docs=./docs --public=./public --out=./dist/library --site=https://drinkbeer228.github.io/elephantology"` и `&& npm run build:library` в конце `build`
 
 **Interfaces:**
-- Produces: `dist/library/**`. Код выхода 1, если `schemaErrors.length > 0`, `books < articles` или `katexErrors > 0`. В конце печатается отчёт: число книг, ошибки KaTeX, сноски без источника по статьям, неразрешённые ссылки, восстановленные формулы по статьям.
+- Produces: `dist/library/**`. Код выхода 1, если `schemaErrors.length > 0`, `books < articles` или `katexErrors > 0`. Файлы и отчёт пишутся до проверки кода выхода. В конце печатается отчёт: число книг, ошибки KaTeX, сноски без источника по статьям, неразрешённые ссылки, восстановленные формулы по статьям.
 
 - [ ] **Step 1: Run the build**
 
 Run: `npm run build`
 Expected:
 
-- выход 0;
-- в отчёте 70 книг (68 статей и 2 справочника), `katexErrors: 0`;
+- в отчёте 70 книг (68 статей и 2 справочника);
+- пока автор не применил правку исходников (раздел 16 спецификации, п. 6): выход 1 только из-за двух ошибок KaTeX — `conservation/cites-mike-and-anti-poaching-monitoring` (строка 117) и `conservation/translocation-reintroduction-and-metapopulations` (строка 153), где `\right` потерял `\r`; `dist/library` и отчёт при этом записаны полностью. После правки — выход 0 и `katexErrors: 0`;
 - 6 восстановленных формул (`repaired-math`) в `conservation/cites-mike-and-anti-poaching-monitoring` и `conservation/translocation-reintroduction-and-metapopulations`;
 - в топе сносок без источника `ecology/ontogeny-and-life-history`, `veterinary/clinical-welfare-and-protected-contact` и `conservation/spatial-ecology-and-connectivity-corridors`;
 - PDF в `dist/` нет.
