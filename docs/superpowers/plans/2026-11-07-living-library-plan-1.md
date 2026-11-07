@@ -420,11 +420,13 @@ git commit -m "feat: validate structured authors and editors"
 - Create: `elephantology/scripts/library/notes.ts` — remark-плагин сносок
 - Create: `elephantology/scripts/library/blocks.ts` — rehype-плагин блоков, вклеек, ссылок, изображений, атрибутов
 - Create: `elephantology/scripts/library/sanitizeSchema.ts` — схема `rehype-sanitize` (раздел 11 спецификации плюс MathML)
+- Create: `elephantology/src/lib/remarkDisplayMath.ts` — remark-плагин: абзац, в котором только формула `$$…$$`, становится выключной формулой (таблица «Преобразования» спецификации)
 - Modify: `elephantology/package.json` — devDependencies: `tsx@^4.23.15`, `unified`, `remark-parse`, `remark-rehype`, `rehype-stringify`, `image-size@^2.1.0`
 - Test: `elephantology/scripts/library/__tests__/renderBook.test.ts`, `elephantology/scripts/library/__tests__/schema.test.ts`
 
 **Interfaces:**
 - Consumes: `cleanArticleMarkdownBody`, `slugifyHeading` (`src/services/referenceService.ts`); `ReferenceItem` и `Contributor` (`src/types.ts`, Task 5)
+- Produces (`src/lib/remarkDisplayMath.ts`): `export function remarkDisplayMath(): (tree: Root, file: VFile) => void` — в конвейере книги сразу после `remark-math`. Сайт его пока не подключает: это решает автор.
 - Produces (`schema.ts`):
 
 ```ts
@@ -451,7 +453,7 @@ export function classifyCodeBlock(text: string): { kind: 'diagram' | 'wrap'; col
 export function missingNoteLabel(key: string): string;
 ```
 
-Конвейер: `cleanArticleMarkdownBody` → разбивка `[^a, ^b]` на `[^a][^b]` вне блоков кода → `remark-parse` → `remark-gfm` → `remark-math` → `notes.ts` → `remark-rehype` (без собственного раздела сносок) → `rehype-katex` (`output: 'mathml'`, `throwOnError: false`) → `blocks.ts` → `rehype-sanitize` (`sanitizeSchema.ts`) → `rehype-stringify`. Ошибки KaTeX (элементы `.katex-error`) идут в `issues` с видом `katex`.
+Конвейер: `cleanArticleMarkdownBody` → разбивка `[^a, ^b]` на `[^a][^b]` вне блоков кода → `remark-parse` → `remark-gfm` → `remark-math` → `remarkDisplayMath` → `notes.ts` → `remark-rehype` (без собственного раздела сносок) → `rehype-katex` (`output: 'mathml'`, `throwOnError: false`) → `blocks.ts` → `rehype-sanitize` (`sanitizeSchema.ts`) → `rehype-stringify`. Ошибки KaTeX (элементы `.katex-error`) идут в `issues` с видом `katex`.
 
 Правила (раздел 5.1 спецификации):
 
@@ -463,6 +465,7 @@ export function missingNoteLabel(key: string): string;
 - **Изображения:** `src = siteBase + путь`, `width` и `height` из `imageSize`, `loading="lazy"`.
 - **Блоки кода:** `classifyCodeBlock` — `wrap`, если самая длинная строка длиннее 118 знаков и в тексте нет символов `─│┌┐└┘├┤┬┴┼═║╔╗╚╝╭╮▼▲►◄→←↑↓█▓▒`, иначе `diagram`. `diagram` → `<figure class="plate" data-kind="diagram" data-cols data-lines><pre>`, `wrap` → `<pre class="wrap">`.
 - **Таблицы:** `<figure class="plate" data-kind="table">`.
+- **Выключные формулы.** Абзац, в котором нет ничего, кроме одной формулы, записанной как `$$…$$`, заменяется узлом `math` с теми же `data`, что `remark-math` даёт блоку `$$` на отдельных строках; `rehype-katex` выводит его как `<math display="block">`. Запись `$$` узнаётся по исходному тексту на месте узла (`position`). Формулы `$…$` и `$$…$$` внутри текста остаются строчными. Так записаны все 32 выключные формулы корпуса.
 - **Атрибуты:** у дочерних элементов корня `data-b="0…n-1"`, у `h2` и `h3` — `data-h` из `slugifyHeading`. Атрибутов `id` в выходе нет.
 
 - [ ] **Step 1: Write the failing tests**
@@ -479,6 +482,11 @@ describe('renderBook', () => {
     const r = await render('где $V$ — объём.\n\n$$V = \\pi r^2$$');
     expect(r.html).toContain('<math');
     expect(r.html).not.toContain('$');
+  });
+  it('renders a paragraph that is only a $$ formula as display math', async () => {
+    const r = await render('Объём $$V$$ и $r$ в тексте.\n\n$$V = \\pi r^2$$');
+    expect(r.html.match(/<math/g)).toHaveLength(3);
+    expect(r.html.match(/<math[^>]*display="block"/g)).toHaveLength(1);
   });
   it('splits grouped citations', async () => {
     const r = await render('Факт [^a, ^b].\n\n[^a]: Источник А.\n[^b]: Источник Б.');
@@ -564,7 +572,7 @@ Expected: PASS
 - [ ] **Step 5: Commit**
 
 ```bash
-git add scripts/library package.json package-lock.json
+git add scripts/library src/lib/remarkDisplayMath.ts package.json package-lock.json
 git commit -m "feat: render articles into sanitized library books"
 ```
 
@@ -1278,7 +1286,7 @@ Expected: FAIL
 
 - [ ] **Step 3: Реализовать `turn.ts`, `reader.ts`, `open.ts`, `reader.css`**
 
-Вид — по черновику `library-preview.html`: стол, лампа, стопка с котом, бумага, рамка 1,6 px цвета `#2C302E`. Длительности — из Global Constraints.
+Вид — по черновику `library-preview.html`: стол, лампа, стопка с котом, бумага, рамка 1,6 px цвета `#2C302E`. Длительности — из Global Constraints. Выключная формула `math[display="block"]` стоит по центру, с отступом в пол-строки сверху и снизу, и не разрывается между страницами.
 
 - [ ] **Step 4: Run tests and look at the book**
 
