@@ -17,6 +17,8 @@ import { runTurn, TURN_EASING } from './turn';
 import { bookHash, parseRoute } from '../router';
 import { findNote, hideNote, noteOpen, REFS_EVENT, showNote, tidyNoteSpacing } from './notes';
 import { closeFoldout, foldoutOpen, openFoldout } from './foldout';
+import { barButton, MAX_FONT, MIN_FONT, popButton, renderFontPop, renderMorePop } from './bar';
+import { hitAt, NOTE_SLOP, type Hit } from './hit';
 import { anchorAt, chooseRestorePage, chosenFontSize, isFinished, NO_BLOCK } from './position';
 
 export interface ReaderOptions { doc: Document; root: HTMLElement; catalog: CatalogFile; entry: CatalogBook; book: BookFile; store: Store; reducedMotion: boolean; onClose(): void }
@@ -33,27 +35,9 @@ const SWIPE_SLOP = 10;
 const VELOCITY_WINDOW = 100;
 /** After a gesture, the click that some browsers send for the same touch is ignored for this long. */
 const CLICK_QUIET_MS = 400;
-/** How far from a note number (px) a click still counts as on it: the number is a few pixels wide. */
-const NOTE_SLOP: Record<string, number> = { mouse: 3, pen: 8, touch: 14 };
-const LINK_SLOP = 2;
 const FLASH_MS = 2200;
-const MIN_FONT = 15;
-const MAX_FONT = 22;
 /** The store's size when nothing was chosen (`store.ts`); `settings.fontSet` says whether the reader chose one. */
 const STORE_DEFAULT_FONT = 17;
-
-type Hit =
-  | { kind: 'note'; el: Element; key: string | null; n: string | null }
-  | { kind: 'hash'; h: string }
-  | { kind: 'book'; id: string }
-  | { kind: 'ext'; href: string }
-  | { kind: 'toc'; h: string }
-  | { kind: 'plate'; fig: Element };
-
-/** Distance from a point to a rectangle (0 inside it). */
-function distance(r: DOMRect, x: number, y: number): number {
-  return Math.hypot(Math.max(r.left - x, 0, x - r.right), Math.max(r.top - y, 0, y - r.bottom));
-}
 
 /** Cover colours: the discipline colours of the hall draft (`prototype/preview.template.html`, `DISC`). */
 const COVER_COLORS: Record<string, string> = {
@@ -66,15 +50,6 @@ const REFERENCE_COLOR = '#4F5552';
 const LAMP_SVG = '<circle cx="76" cy="76" r="60" fill="#2E5A44" stroke="#2C302E" stroke-width="3"/><circle cx="76" cy="76" r="45" fill="#3a6f55"/><circle cx="62" cy="60" r="20" fill="rgba(255,255,255,.12)"/><circle cx="76" cy="76" r="11" fill="#C9A15A" stroke="#2C302E" stroke-width="2.5"/>';
 const PILE_SVG = '<g stroke="#2C302E" stroke-width="2"><rect x="10" y="20" width="108" height="74" rx="4" fill="#2E5A44" transform="rotate(-5 64 57)"/><rect x="14" y="20" width="100" height="70" rx="4" fill="#C86D51" transform="rotate(4 64 55)"/><rect x="20" y="24" width="88" height="62" rx="4" fill="#E4CF9C" transform="rotate(-2 64 55)"/></g>'
   + '<g class="rd-cat"><ellipse cx="62" cy="58" rx="31" ry="25" fill="#1F2324" stroke="#121415" stroke-width="2.4"/><path d="M36 74c10 16 42 16 56 2" fill="none" stroke="#181A1B" stroke-width="7.5" stroke-linecap="round"/><circle cx="91" cy="76" r="3.6" fill="#F7F5F0"/><circle cx="76" cy="48" r="14" fill="#232729" stroke="#121415" stroke-width="2"/><path d="M66 38l-2-13 12 7zM86 38l3-13-12 7z" fill="#161819" stroke="#121415" stroke-width="1.6"/><ellipse cx="80" cy="56" rx="6.5" ry="5" fill="#F7F5F0"/><circle cx="83" cy="54" r="1.5" fill="#D98A7C"/><path d="M66 48q3 2 6 0M78 44q3 2 6 0" fill="none" stroke="#E8E4DA" stroke-width="1.5" stroke-linecap="round"/></g>';
-
-/** Bar icons (shown instead of the words on a phone, spec 8.9). 20 px, stroke only. */
-const ICONS: Record<string, string> = {
-  close: '<path d="M5 5l10 10M15 5L5 15"/>',
-  toc: '<path d="M4 5h12M4 10h12M4 15h8"/>',
-  bookmark: '<path d="M6 3h8v14l-4-3.5L6 17z"/>',
-  more: '<circle cx="4.5" cy="10" r="1.3"/><circle cx="10" cy="10" r="1.3"/><circle cx="15.5" cy="10" r="1.3"/>',
-  lamp: '<path d="M10 2.5a5 5 0 0 0-3 9v2h6v-2a5 5 0 0 0-3-9zM7.5 16.5h5"/>',
-};
 
 type Pop = 'bm' | 'fs' | 'more';
 type Side = 'l' | 'r';
@@ -819,52 +794,7 @@ export class Reader {
 
   /** The note, link, contents row or plate at a point of the screen, or null. Looks only at the pages on display. */
   private hit(x: number, y: number, slop: number): Hit | null {
-    for (const p of [this.right, this.left]) {
-      if (!p || p.el.classList.contains('blank')) continue;
-      const win = p.flow.parentElement;
-      if (!win || distance(win.getBoundingClientRect(), x, y) > slop) continue;
-      const found = this.hitIn(p.flow, x, y, slop);
-      if (found) return found;
-    }
-    return null;
-  }
-
-  private hitIn(flow: HTMLElement, x: number, y: number, slop: number): Hit | null {
-    const near = (e: Element, within: number): number => {
-      let d = Number.POSITIVE_INFINITY;
-      for (const r of Array.from(e.getClientRects())) d = Math.min(d, distance(r, x, y));
-      return d <= within ? d : Number.POSITIVE_INFINITY;
-    };
-    let best: Element | null = null;
-    let bestD = Number.POSITIVE_INFINITY;
-    flow.querySelectorAll('sup.note').forEach((sup) => {
-      const d = near(sup, slop);
-      if (d < bestD) {
-        best = sup;
-        bestD = d;
-      }
-    });
-    if (best) {
-      const sup: Element = best;
-      return { kind: 'note', el: sup, key: sup.getAttribute('data-key'), n: sup.querySelector('a[data-note]')?.getAttribute('data-note') ?? null };
-    }
-    for (const a of Array.from(flow.querySelectorAll('a[href^="#"], a[data-book], a[href^="https:"]'))) {
-      if (near(a, LINK_SLOP) === Number.POSITIVE_INFINITY) continue;
-      const href = a.getAttribute('href') ?? '';
-      if (href.startsWith('#')) return { kind: 'hash', h: href.slice(1) };
-      if (a.hasAttribute('data-book')) return { kind: 'book', id: a.getAttribute('data-book') ?? '' };
-      return { kind: 'ext', href };
-    }
-    for (const li of Array.from(flow.querySelectorAll('.fm-next li[data-book]'))) {
-      if (near(li, 0) !== Number.POSITIVE_INFINITY) return { kind: 'book', id: li.getAttribute('data-book') ?? '' };
-    }
-    for (const li of Array.from(flow.querySelectorAll('.fm.contents li[data-h]'))) {
-      if (near(li, 0) !== Number.POSITIVE_INFINITY) return { kind: 'toc', h: li.getAttribute('data-h') ?? '' };
-    }
-    for (const fig of Array.from(flow.querySelectorAll('figure.plate'))) {
-      if (near(fig, 0) !== Number.POSITIVE_INFINITY) return { kind: 'plate', fig };
-    }
-    return null;
+    return hitAt([this.right, this.left], x, y, slop);
   }
 
   /** The hand cursor over what a click would do, for a mouse; touch has no hover. Once per frame. */
@@ -932,22 +862,8 @@ export class Reader {
 
   // ---- bar, menus, memory (spec sections 8.9, 8.10 and 9) -----------------------------------------------------------
 
-  /** A bar button: the words on a desktop, an icon on a phone (CSS decides); `icon` null keeps the words always. */
   private barButton(label: string, icon: string | null, f: (b: HTMLButtonElement) => void): HTMLButtonElement {
-    const b = this.el('button', icon ? 'rd-btn' : 'rd-btn rd-txt') as HTMLButtonElement;
-    b.setAttribute('type', 'button');
-    b.setAttribute('aria-label', label);
-    if (icon) {
-      const svg = this.doc.createElementNS('http://www.w3.org/2000/svg', 'svg');
-      svg.setAttribute('class', 'rd-ico');
-      svg.setAttribute('viewBox', '0 0 20 20');
-      svg.setAttribute('aria-hidden', 'true');
-      svg.innerHTML = ICONS[icon]; // fixed drawing from this file, no data
-      b.append(svg);
-    }
-    b.append(this.el('span', 'rd-lbl', label));
-    b.addEventListener('click', () => f(b));
-    return b;
+    return barButton(this.doc, label, icon, f);
   }
 
   private goToContents(): void {
@@ -998,10 +914,7 @@ export class Reader {
   }
 
   private popButton(text: string, f: () => void, cls = 'rd-pop-btn'): HTMLButtonElement {
-    const b = this.el('button', cls, text) as HTMLButtonElement;
-    b.setAttribute('type', 'button');
-    b.addEventListener('click', f);
-    return b;
+    return popButton(this.doc, text, f, cls);
   }
 
   private renderPop(): void {
@@ -1026,31 +939,11 @@ export class Reader {
   }
 
   private renderMorePop(box: HTMLElement): void {
-    const bm = this.popButton('Закладка', () => this.togglePop('bm', this.moreBtn!));
-    bm.dataset.k = 'bm';
-    bm.setAttribute('aria-haspopup', 'true');
-    const on = this.o.root.classList.contains('lamp');
-    const lamp = this.popButton(on ? 'Лампа: включена' : 'Лампа: выключена', () => this.toggleLamp());
-    lamp.dataset.k = 'lamp';
-    lamp.setAttribute('aria-pressed', String(on));
-    box.append(bm, lamp);
+    renderMorePop(this.doc, box, this.o.root.classList.contains('lamp'), { bookmarks: () => this.togglePop('bm', this.moreBtn!), lamp: () => this.toggleLamp() });
   }
 
   private renderFontPop(box: HTMLElement): void {
-    const row = this.el('div', 'rd-pop-row');
-    const less = this.popButton('А−', () => this.setFontSize(this.fs - 1), 'rd-pop-btn rd-pop-step');
-    less.setAttribute('aria-label', 'Мельче');
-    less.dataset.k = 'less';
-    less.disabled = this.fs <= MIN_FONT;
-    const more = this.popButton('А+', () => this.setFontSize(this.fs + 1), 'rd-pop-btn rd-pop-step');
-    more.setAttribute('aria-label', 'Крупнее');
-    more.dataset.k = 'more';
-    more.disabled = this.fs >= MAX_FONT;
-    row.append(less, this.el('span', 'rd-pop-val', `${this.fs} px`), more);
-    const reset = this.popButton('По ширине окна', () => this.setFontSize(null));
-    reset.dataset.k = 'reset';
-    reset.disabled = this.explicitFs === null;
-    box.append(row, reset);
+    renderFontPop(this.doc, box, this.fs, this.explicitFs !== null, (size) => this.setFontSize(size));
   }
 
   /** The size is chosen by the reader: kept in the store, and the book is laid out again with its place kept (`relayout`). */
