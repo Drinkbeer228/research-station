@@ -3,9 +3,11 @@
  * by `layoutFlow`; every visible page is a window on one column of an inert, aria-hidden copy of that flow: two on a
  * spread, one on a single page, and two more for the turning leaf, made on the first turn.
  *
- * The windows are inert, so a click never reaches what is in them: it lands on the window or the edge strip, and
- * `hit` finds the note, link, contents row or plate under the point from the rectangles of the visible window's
- * own elements (notes, plates and links of spec 8.7 and 8.8; Task 20).
+ * The windows on display are `aria-hidden` but not inert, so that their text can be selected (spec 12; the leaf's
+ * windows stay inert); what is focusable in them is taken out of the tab order. A click on a note, link, contents row
+ * or plate in them is resolved by `hit` from the rectangles of the visible window's own elements (spec 8.7 and 8.8;
+ * Task 20). Readers of the screen and the keyboard get a linear `.sr-only` copy of the whole book (spec 12; Task 22)
+ * whose notes, plates, contents rows and «Дальше» are buttons, and a polite announcement of the page.
  */
 import type { BookFile, CatalogBook, CatalogFile } from '../types';
 import type { Anchor, BookMemory, LibraryState, Store } from '../store';
@@ -19,6 +21,7 @@ import { findNote, hideNote, noteOpen, REFS_EVENT, showNote, tidyNoteSpacing } f
 import { closeFoldout, foldoutOpen, openFoldout } from './foldout';
 import { barButton, MAX_FONT, MIN_FONT, popButton, renderFontPop, renderMorePop } from './bar';
 import { hitAt, NOTE_SLOP, type Hit } from './hit';
+import { tabStops, wrapFocus } from './mobile';
 import { anchorAt, chooseRestorePage, chosenFontSize, isFinished, NO_BLOCK } from './position';
 
 export interface ReaderOptions { doc: Document; root: HTMLElement; catalog: CatalogFile; entry: CatalogBook; book: BookFile; store: Store; reducedMotion: boolean; onClose(): void }
@@ -106,6 +109,10 @@ export class Reader {
   private pop: Pop | null = null;
   private popEl: HTMLElement | null = null;
   private count: HTMLElement | null = null;
+  /** The linear copy of the book for readers of the screen, and the polite announcement of the page. */
+  private linear: HTMLElement | null = null;
+  private live: HTMLElement | null = null;
+  private announced = -1;
   private bmBtn: HTMLButtonElement | null = null;
   private lampBtn: HTMLButtonElement | null = null;
   private moreBtn: HTMLButtonElement | null = null;
@@ -158,9 +165,13 @@ export class Reader {
     this.moreBtn = this.barButton('Ещё', 'more', (b) => this.togglePop('more', b));
     this.moreBtn.setAttribute('aria-haspopup', 'true');
     this.count = this.el('div', 'rd-count');
+    this.count.setAttribute('aria-hidden', 'true'); // the announcement below says it
+    this.live = this.el('div', 'sr-only');
+    this.live.setAttribute('role', 'status');
+    this.live.setAttribute('aria-live', 'polite');
     bar.append(close, this.el('span', 'rd-sp'), toc, this.bmBtn, aa, this.lampBtn, this.moreBtn);
     this.measureEl.setAttribute('aria-hidden', 'true');
-    root.replaceChildren(desk, lamp, pile, wrap, bar, this.count, this.measureEl);
+    root.replaceChildren(desk, lamp, pile, wrap, bar, this.count, this.live, this.measureEl);
 
     const settings = store.read().settings;
     this.explicitFs = chosenFontSize(settings);
@@ -180,6 +191,8 @@ export class Reader {
 
     this.parts = buildFlow(this.doc, catalog, entry, book, store.read().books[entry.id] ?? null);
     this.prepareBody(this.parts.body);
+    this.linear = this.makeLinear(this.parts.flow); // before the measuring layout puts its styles on the flow
+    this.o.root.insertBefore(this.linear, this.measureEl);
     this.measureEl.append(this.parts.flow);
     this.listen();
 
@@ -293,11 +306,13 @@ export class Reader {
   /** Contents rows get their page numbers (1-based) from the measured chapters. */
   private fillContents(layout: Layout): void {
     const pageOf = new Map(layout.chapters.map((c) => [c.h, c.page]));
-    this.parts!.contents.querySelectorAll('li[data-h]').forEach((li) => {
-      const page = pageOf.get(li.getAttribute('data-h') ?? '');
-      const cell = li.querySelector('.toc-page');
-      if (cell) cell.textContent = page === undefined ? '' : String(page + 1);
-    });
+    for (const contents of [this.parts!.contents, this.linear?.querySelector('.fm.contents')]) {
+      contents?.querySelectorAll('li[data-h]').forEach((li) => {
+        const page = pageOf.get(li.getAttribute('data-h') ?? '');
+        const cell = li.querySelector('.toc-page');
+        if (cell) cell.textContent = page === undefined ? '' : String(page + 1);
+      });
+    }
   }
 
   /**
@@ -320,6 +335,38 @@ export class Reader {
     });
   }
 
+  /**
+   * The linear copy (spec 12): the whole book as one document for the screen reader, clipped out of sight. What the
+   * windows leave to hit-testing is a button here: note numbers, «Развернуть вклейку», the rows of the contents and
+   * of «Дальше».
+   */
+  private makeLinear(flow: HTMLElement): HTMLElement {
+    const sr = this.el('div', 'rd-sr sr-only');
+    sr.setAttribute('role', 'document');
+    sr.setAttribute('aria-label', 'Текст книги');
+    sr.append(...Array.from((flow.cloneNode(true) as HTMLElement).childNodes));
+    const button = (text: string): HTMLButtonElement => {
+      const b = this.el('button', 'rd-sr-go', text) as HTMLButtonElement;
+      b.setAttribute('type', 'button');
+      return b;
+    };
+    sr.querySelectorAll('sup.note').forEach((sup) => {
+      const text = sup.textContent?.trim() ?? '';
+      const n = sup.querySelector('a[data-note]')?.getAttribute('data-note') ?? text;
+      const b = button(text);
+      b.dataset.note = n;
+      b.setAttribute('aria-label', `Сноска ${n}`);
+      sup.replaceChildren(b);
+    });
+    sr.querySelectorAll('.rd-unf').forEach((b) => b.removeAttribute('tabindex'));
+    sr.querySelectorAll('.fm.contents li[data-h], .fm-next li[data-book]').forEach((li) => {
+      const b = button('');
+      b.append(...Array.from(li.childNodes));
+      li.append(b);
+    });
+    return sr;
+  }
+
   // ---- pages --------------------------------------------------------------------------------------------------
 
   private applyVars(g: Geometry): void {
@@ -337,6 +384,7 @@ export class Reader {
     const flow = this.parts!.flow.cloneNode(true) as HTMLElement;
     flow.setAttribute('aria-hidden', 'true');
     flow.setAttribute('inert', '');
+    flow.querySelectorAll('a, button, [tabindex]').forEach((e) => e.setAttribute('tabindex', '-1')); // hidden from readers: out of Tab too
     win.append(flow);
     el.append(this.el('div', 'rd-endp'), head, win, folio, shade);
     return { el, flow, head, folio, shade };
@@ -365,6 +413,8 @@ export class Reader {
       book.append(edge);
     }
     if (this.cover) book.append(this.cover);
+    // The pages on display are not inert, so their text can be selected (spec 12); the leaf's windows stay inert.
+    for (const p of [this.left, this.right]) p?.flow.removeAttribute('inert');
   }
 
   private paint(p: Page, idx: number, side: Side): void {
@@ -585,6 +635,9 @@ export class Reader {
     // A fold-out lies over the whole book: its keys (arrows, space) scroll it, only Esc is the reader's.
     if (e.key !== 'Escape' && foldoutOpen(this.o.root)) return;
     switch (e.key) {
+      case 'Tab':
+        this.trapFocus(e);
+        return;
       case 'Escape':
         // The topmost layer first: a fold-out, then a note card, then the book itself.
         if (closeFoldout(this.o.root)) break;
@@ -620,6 +673,15 @@ export class Reader {
     }
     e.preventDefault();
     e.stopPropagation();
+  }
+
+  /** Tab stays inside the overlay (spec 12), or inside the fold-out while one lies over it. */
+  private trapFocus(e: KeyboardEvent): void {
+    const layer = this.o.root.querySelector<HTMLElement>(':scope > .rd-fold');
+    const next = wrapFocus(tabStops(layer ?? this.o.root), this.doc.activeElement, e.shiftKey);
+    if (!next) return;
+    e.preventDefault();
+    next.focus();
   }
 
   private onPointerDown(e: PointerEvent): void {
@@ -724,6 +786,12 @@ export class Reader {
   private onClick(e: MouseEvent): void {
     const t = e.target as Element | null;
     if (this.closed || !t || t.nodeType !== 1) return;
+    if (t.closest('.rd-sr')) {
+      this.onLinear(e, t);
+      return;
+    }
+    // A link in a window is resolved below by its place on the page, never by the browser.
+    if (t.closest('.rd-win') && t.closest('a')) e.preventDefault();
     const link = t.closest('a[href^="#"]');
     if (link && this.o.root.contains(link)) {
       // A link to a place in the book never changes `location.hash` (it holds the route): turn to the place instead.
@@ -751,6 +819,8 @@ export class Reader {
     }
     if (inPop || t.closest('.rd-fold, .rd-bar') || !this.layout) return;
     if (this.busy || performance.now() < this.quietUntil) return;
+    // A drag that selected text and ended on a number or a link is not a click on it.
+    if (this.win.getSelection()?.isCollapsed === false) return;
     const hit = this.hit(e.clientX, e.clientY, NOTE_SLOP[(e as PointerEvent).pointerType || (e.detail === 0 ? 'mouse' : this.lastPointer)] ?? NOTE_SLOP.mouse);
     if (noteOpen(this.o.root)) {
       // A click away from the card puts it away; a click on another number shows that one.
@@ -764,6 +834,35 @@ export class Reader {
       return;
     }
     this.act(hit, e);
+  }
+
+  /** A click in the linear copy: the buttons and links of the screen reader's book do what the page's own would. */
+  private onLinear(e: MouseEvent, t: Element): void {
+    const a = t.closest('a');
+    if (a) {
+      e.preventDefault();
+      const href = a.getAttribute('href') ?? '';
+      if (href.startsWith('#')) this.goToHeading(href.slice(1));
+      else if (a.hasAttribute('data-book')) this.openBook(a.getAttribute('data-book') ?? '');
+      else if (href.startsWith('https:')) this.win.open(href, '_blank', 'noopener,noreferrer');
+      return;
+    }
+    const b = t.closest<HTMLElement>('button');
+    if (!b) return;
+    this.closePop();
+    const sup = b.closest('sup.note');
+    if (sup) {
+      const note = findNote(this.o.book.notes, sup.getAttribute('data-key'), b.dataset.note ?? null);
+      if (!note) return;
+      this.noteKey = note.key;
+      // The card has no number on a page to sit beside: it goes to the middle of the screen.
+      showNote(this.o.root, this.o.root, note, { x: this.win.innerWidth / 2, y: this.win.innerHeight / 2 });
+      return;
+    }
+    const fig = b.closest('figure.plate');
+    if (fig) this.openPlate(fig);
+    else if (b.closest('li[data-h]')) this.goToHeading(b.closest('li')!.getAttribute('data-h') ?? '');
+    else if (b.closest('li[data-book]')) this.openBook(b.closest('li')!.getAttribute('data-book') ?? '');
   }
 
   private act(hit: Hit, e: MouseEvent): void {
@@ -1081,7 +1180,12 @@ export class Reader {
   /** After every change of what is on display: the counter, the bookmark mark, the place, the day of finishing. */
   private shown(): void {
     if (!this.layout || !this.g) return;
-    if (this.count) this.count.textContent = `${this.placePage() + 1} из ${this.pages}`; // the number printed on the page being read
+    const printed = this.placePage() + 1; // the number printed on the page being read
+    if (this.count) this.count.textContent = `${printed} из ${this.pages}`;
+    if (this.live && this.announced !== printed) {
+      this.announced = printed;
+      this.live.textContent = `Страница ${printed} из ${this.pages}`;
+    }
     if (this.bmBtn) {
       const here = this.shownPages();
       const memory = this.memory();
@@ -1113,7 +1217,7 @@ export class Reader {
     const m = this.memory();
     if (!m) return;
     const list = (dates: string[]) => (dates.length ? dates.join(', ') : '—');
-    for (const flow of [this.parts?.flow, this.left?.flow, this.right?.flow, this.leaf?.front.flow, this.leaf?.back.flow]) {
+    for (const flow of [this.parts?.flow, this.linear, this.left?.flow, this.right?.flow, this.leaf?.front.flow, this.leaf?.back.flow]) {
       const cells = flow?.querySelectorAll('.fm-card dd');
       if (!cells || cells.length < 2) continue;
       cells[0].textContent = list(m.opened);

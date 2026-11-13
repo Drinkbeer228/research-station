@@ -8,14 +8,13 @@ import { LibraryError, loadBook, loadCatalog } from '../api';
 import { bookHash } from '../router';
 import { createStore, type Store } from '../store';
 import type { CatalogBook } from '../types';
+import { enterReadingMode } from './mobile';
 import { Reader } from './reader';
 
 const SITE = 'https://drinkbeer228.github.io/elephantology/';
-const ROOT_CLASS = 'ers-library-open';
-const READING_VIEWPORT = 'width=device-width, initial-scale=1.0, viewport-fit=cover';
 
 interface GameInput { blockedByModal: boolean; clearAllInputs?: () => void }
-interface Session { id: string; root: HTMLElement; reader: Reader | null; entry: CatalogBook | null; site: string; restore: () => void }
+interface Session { id: string; root: HTMLElement; reader: Reader | null; entry: CatalogBook | null; site: string; restore: () => void; returnTo: HTMLElement | null }
 
 let session: Session | null = null;
 /** Bumped by every load and every close, so a load that resolves late for an old route does nothing. */
@@ -38,17 +37,14 @@ function libraryStore(): Store {
 const gameInput = (): GameInput | undefined => (window as unknown as { __ERS_GAME__?: { input?: GameInput } }).__ERS_GAME__?.input;
 
 /**
- * While the overlay is open (spec 5.2): the root class that lifts the campus `touch-action`, the zoomable viewport,
- * the campus input blocked, and Esc for the overlay before the reader exists. Returns the restorer.
+ * While the overlay is open (spec 5.2): reading mode (`mobile.ts`: the root class that lifts the campus `touch-action`
+ * and the zoomable viewport), the campus input blocked, and Esc for the overlay before the reader exists. Returns the
+ * restorer.
  */
 function enterOverlay(root: HTMLElement): () => void {
-  const html = document.documentElement;
-  const meta = document.querySelector('meta[name="viewport"]');
-  const viewport = meta?.getAttribute('content') ?? null;
+  const leaveReading = enterReadingMode(document);
   const input = gameInput();
   const blocked = input?.blockedByModal ?? false;
-  html.classList.add(ROOT_CLASS);
-  meta?.setAttribute('content', READING_VIEWPORT);
   if (input) {
     input.blockedByModal = true;
     input.clearAllInputs?.();
@@ -64,8 +60,7 @@ function enterOverlay(root: HTMLElement): () => void {
   window.addEventListener('keydown', onKey, true);
   return () => {
     window.removeEventListener('keydown', onKey, true);
-    html.classList.remove(ROOT_CLASS);
-    if (meta && viewport !== null) meta.setAttribute('content', viewport);
+    leaveReading();
     if (input) input.blockedByModal = blocked;
     root.remove();
   };
@@ -79,6 +74,16 @@ function end(): void {
   if (!s) return;
   s.reader?.close();
   s.restore();
+  giveFocusBack(s.returnTo);
+}
+
+/**
+ * After the overlay closes (spec 12): focus goes back to the element that opened the book; a book opened by a link
+ * (the address, a link in the page) leaves none, and focus rests on the page body.
+ */
+function giveFocusBack(to: HTMLElement | null): void {
+  if (to && to.isConnected) to.focus({ preventScroll: true });
+  else (document.activeElement as HTMLElement | null)?.blur?.();
 }
 
 /**
@@ -100,6 +105,8 @@ addEventListener('hashchange', () => {
 export async function openBookRoute(id: string): Promise<void> {
   if (session?.id === id) return;
   end();
+  const active = document.activeElement;
+  const returnTo = active instanceof HTMLElement && active !== document.body && active !== document.documentElement ? active : null;
   const root = document.createElement('div');
   root.className = 'ers-reader';
   root.setAttribute('role', 'dialog');
@@ -107,7 +114,7 @@ export async function openBookRoute(id: string): Promise<void> {
   root.setAttribute('aria-label', 'Книга');
   root.tabIndex = -1;
   document.body.append(root);
-  session = { id, root, reader: null, entry: null, site: SITE, restore: enterOverlay(root) };
+  session = { id, root, reader: null, entry: null, site: SITE, restore: enterOverlay(root), returnTo };
   root.focus();
   await load(session);
 }

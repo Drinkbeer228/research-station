@@ -912,7 +912,7 @@ html.ers-library-open body {
 .ers-reader .rd-note-body {
   overscroll-behavior: contain;
   padding: 2px 14px 6px;
-  overflow-y: auto;
+  overflow: auto;
   overflow-wrap: anywhere;
   user-select: text;
   -webkit-user-select: text;
@@ -1369,4 +1369,18 @@ html.ers-library-open body {
 }
 .ers-reader.lamp .rd-lamp {
   filter: drop-shadow(0 0 26px rgba(255, 190, 100, .7));
+}
+
+/* ---- readers of the screen (spec 12; Task 22): the linear copy of the book and the page announcement ---- */
+.ers-reader .sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
 }
