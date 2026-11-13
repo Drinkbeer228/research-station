@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import type { Anchor } from '../store';
 import type { BookFile } from '../types';
-import { anchorAt, chooseRestorePage, isFinished, NO_BLOCK } from '../reader/position';
+import { anchorAt, chooseRestorePage, chosenFontSize, isFinished, NO_BLOCK } from '../reader/position';
 
 const layout = { pages: 20, bodyStart: 4, endStart: 18, chapters: [{ text: '1.', h: 'a', page: 4 }, { text: '2.', h: 'b', page: 9 }] };
 const book = { contentHash: 'sha256:111111111111' } as BookFile;
@@ -55,4 +55,10 @@ test('an anchor is a valid stored anchor: f within 0..1', () => {
   assert.equal(anchorAt(0, layout, () => null).f, 0);
   assert.equal(anchorAt(19, layout, () => ({ b: 9, o: 0 })).f, 1);
   assert.equal(anchorAt(0, { ...layout, pages: 1 }, () => null).f, 0);
+});
+
+test('a chosen size is used only when the flag is set', () => {
+  assert.equal(chosenFontSize({ fontSize: 17, fontSet: true }), 17);
+  assert.equal(chosenFontSize({ fontSize: 17 }), null);
+  assert.equal(chosenFontSize({ fontSize: 20, fontSet: false }), null);
 });

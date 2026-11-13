@@ -46,6 +46,11 @@ export function anchorAt(page: number, layout: Layout, firstBlockOnPage: (p: num
   return anchor;
 }
 
+/** The size the reader chose with «Aa», or null while the size follows the width of the window. */
+export function chosenFontSize(settings: { fontSize: number; fontSet?: boolean }): number | null {
+  return settings.fontSet === true ? settings.fontSize : null;
+}
+
 /** The colophon page is on display (spec 8.10: «Прочитана»). */
 export function isFinished(page: number, layout: Layout): boolean {
   return page >= layout.endStart;

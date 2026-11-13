@@ -2,7 +2,7 @@ import type { CatalogFile } from './types';
 
 export interface Anchor { b: number; o: number; h?: string; f?: number }
 export interface BookMemory { hash: string; at: Anchor | null; bookmarks: Array<Anchor & { t: string }>; opened: string[]; finished: string[] }
-export interface LibraryState { v: 1; current: { book: string; seat: number | null } | null; books: Record<string, BookMemory>; settings: { fontSize: number; theme: 'paper' | 'lamp' }; catalogCache: { generatedAt: string; catalog: CatalogFile } | null }
+export interface LibraryState { v: 1; current: { book: string; seat: number | null } | null; books: Record<string, BookMemory>; settings: { fontSize: number; theme: 'paper' | 'lamp'; fontSet?: boolean }; catalogCache: { generatedAt: string; catalog: CatalogFile } | null }
 export interface Store { read(): LibraryState; write(mutate: (s: LibraryState) => void): void }
 
 const DEFAULT_KEY = 'ers_library_v1';
@@ -49,6 +49,8 @@ function normalize(x: unknown): LibraryState {
   if (!isObject(x)) return out;
   const settings = isObject(x.settings) ? x.settings : {};
   out.settings = { fontSize: clampFont(settings.fontSize), theme: settings.theme === 'lamp' ? 'lamp' : 'paper' };
+  // `fontSet`: the reader chose the size (otherwise it follows the window width). Absent in old states: unset.
+  if (settings.fontSet === true) out.settings.fontSet = true;
   if (isObject(x.current) && typeof x.current.book === 'string') {
     out.current = { book: x.current.book, seat: typeof x.current.seat === 'number' ? x.current.seat : null };
   }

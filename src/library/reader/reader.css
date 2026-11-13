@@ -1103,6 +1103,9 @@ html.ers-library-open body {
   flex: 1;
   pointer-events: none;
 }
+.ers-reader .rd-bar [hidden] {
+  display: none;
+}
 .ers-reader .rd-bar .rd-ico {
   display: none;
   width: 20px;
@@ -1163,7 +1166,8 @@ html.ers-library-open body {
 .ers-reader .rd-pop-btn {
   display: block;
   width: 100%;
-  min-height: 40px;
+  min-height: 44px;
+  margin-bottom: 6px;
   padding: 0 12px;
   background: var(--sand);
   border: 1.3px solid var(--ink);
@@ -1186,6 +1190,7 @@ html.ers-library-open body {
   margin-bottom: 8px;
 }
 .ers-reader .rd-pop-row .rd-pop-step {
+  margin-bottom: 0;
   width: 56px;
   flex: none;
   font-size: 16px;

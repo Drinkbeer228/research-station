@@ -17,7 +17,7 @@ import { runTurn, TURN_EASING } from './turn';
 import { bookHash, parseRoute } from '../router';
 import { findNote, hideNote, noteOpen, REFS_EVENT, showNote, tidyNoteSpacing } from './notes';
 import { closeFoldout, foldoutOpen, openFoldout } from './foldout';
-import { anchorAt, chooseRestorePage, isFinished, NO_BLOCK } from './position';
+import { anchorAt, chooseRestorePage, chosenFontSize, isFinished, NO_BLOCK } from './position';
 
 export interface ReaderOptions { doc: Document; root: HTMLElement; catalog: CatalogFile; entry: CatalogBook; book: BookFile; store: Store; reducedMotion: boolean; onClose(): void }
 
@@ -39,7 +39,7 @@ const LINK_SLOP = 2;
 const FLASH_MS = 2200;
 const MIN_FONT = 15;
 const MAX_FONT = 22;
-/** The store's size when nothing was chosen (`store.ts`): it cannot tell that from a chosen 17, so 17 counts as «not chosen». */
+/** The store's size when nothing was chosen (`store.ts`); `settings.fontSet` says whether the reader chose one. */
 const STORE_DEFAULT_FONT = 17;
 
 type Hit =
@@ -72,10 +72,11 @@ const ICONS: Record<string, string> = {
   close: '<path d="M5 5l10 10M15 5L5 15"/>',
   toc: '<path d="M4 5h12M4 10h12M4 15h8"/>',
   bookmark: '<path d="M6 3h8v14l-4-3.5L6 17z"/>',
+  more: '<circle cx="4.5" cy="10" r="1.3"/><circle cx="10" cy="10" r="1.3"/><circle cx="15.5" cy="10" r="1.3"/>',
   lamp: '<path d="M10 2.5a5 5 0 0 0-3 9v2h6v-2a5 5 0 0 0-3-9zM7.5 16.5h5"/>',
 };
 
-type Pop = 'bm' | 'fs';
+type Pop = 'bm' | 'fs' | 'more';
 type Side = 'l' | 'r';
 interface Page { el: HTMLElement; flow: HTMLElement; head: HTMLElement; folio: HTMLElement; shade: HTMLElement }
 interface Leaf { el: HTMLElement; front: Page; back: Page }
@@ -132,6 +133,7 @@ export class Reader {
   private count: HTMLElement | null = null;
   private bmBtn: HTMLButtonElement | null = null;
   private lampBtn: HTMLButtonElement | null = null;
+  private moreBtn: HTMLButtonElement | null = null;
   private opener: HTMLElement | null = null;
   private readonly cleanup: Array<() => void> = [];
 
@@ -178,19 +180,22 @@ export class Reader {
     this.lampBtn = this.barButton('Лампа', 'lamp', () => this.toggleLamp());
     this.bmBtn.setAttribute('aria-haspopup', 'true');
     aa.setAttribute('aria-haspopup', 'true');
+    this.moreBtn = this.barButton('Ещё', 'more', (b) => this.togglePop('more', b));
+    this.moreBtn.setAttribute('aria-haspopup', 'true');
     this.count = this.el('div', 'rd-count');
-    bar.append(close, this.el('span', 'rd-sp'), toc, this.bmBtn, aa, this.lampBtn);
+    bar.append(close, this.el('span', 'rd-sp'), toc, this.bmBtn, aa, this.lampBtn, this.moreBtn);
     this.measureEl.setAttribute('aria-hidden', 'true');
     root.replaceChildren(desk, lamp, pile, wrap, bar, this.count, this.measureEl);
 
     const settings = store.read().settings;
-    this.explicitFs = settings.fontSize === STORE_DEFAULT_FONT ? null : settings.fontSize;
+    this.explicitFs = chosenFontSize(settings);
     this.fs = this.explicitFs ?? defaultFontSize(this.win.innerWidth);
     root.classList.toggle('lamp', settings.theme === 'lamp');
     this.lampBtn.setAttribute('aria-pressed', String(settings.theme === 'lamp'));
     this.markOpened(); // before the colophon is built: its formular shows today
     this.g = this.geometry();
     this.applyVars(this.g);
+    this.barMode(this.g);
     this.bookEl.classList.toggle('single', !this.g.spread);
     if (!reducedMotion) {
       this.cover = this.makeCover();
@@ -287,6 +292,7 @@ export class Reader {
     this.dismissNote(); // the card is placed beside a number that is about to move
     this.g = g;
     this.fs = g.fs;
+    this.barMode(g);
     this.layout = layoutFlow(this.parts, g);
     const refs = this.parts.flow.querySelector(':scope > section.refs');
     this.refsStart = refs ? this.pageOfElement(refs) : Number.POSITIVE_INFINITY;
@@ -762,7 +768,7 @@ export class Reader {
       return;
     }
     // A menu button may have been replaced while it handled the click, so the menu is found on the event's path.
-    const inPop = !!this.popEl && e.composedPath().includes(this.popEl);
+    const inPop = e.composedPath().some((n) => n instanceof Element && n.classList.contains('rd-pop'));
     if (this.pop && !inPop && !t.closest('.rd-bar')) {
       // A click away from the menu puts it away and does nothing else.
       this.closePop();
@@ -954,6 +960,7 @@ export class Reader {
     const on = !this.o.root.classList.contains('lamp');
     this.o.root.classList.toggle('lamp', on);
     this.lampBtn?.setAttribute('aria-pressed', String(on));
+    this.renderPop();
     this.o.store.write((s) => {
       s.settings.theme = on ? 'lamp' : 'paper';
     });
@@ -973,7 +980,7 @@ export class Reader {
     opener.setAttribute('aria-expanded', 'true');
     this.popEl = this.el('div', 'rd-pop');
     this.popEl.setAttribute('role', 'group');
-    this.popEl.setAttribute('aria-label', kind === 'bm' ? 'Закладки' : 'Размер шрифта');
+    this.popEl.setAttribute('aria-label', kind === 'bm' ? 'Закладки' : kind === 'more' ? 'Ещё' : 'Размер шрифта');
     this.o.root.append(this.popEl);
     this.renderPop();
     this.popEl.querySelector<HTMLElement>('button:not(:disabled)')?.focus();
@@ -1004,8 +1011,29 @@ export class Reader {
     const focus = active instanceof HTMLElement && box.contains(active) ? active.dataset.k : undefined;
     box.replaceChildren();
     if (this.pop === 'fs') this.renderFontPop(box);
+    else if (this.pop === 'more') this.renderMorePop(box);
     else this.renderBookmarkPop(box);
     if (focus) box.querySelector<HTMLElement>(`[data-k="${focus}"]:not(:disabled)`)?.focus();
+  }
+
+  /** Below the spread (spec 8.9, phones) «Закладка» and «Лампа» are not in the bar: «Ещё» opens a menu with them. */
+  private barMode(g: Geometry): void {
+    const compact = !g.spread;
+    this.bmBtn!.hidden = this.lampBtn!.hidden = compact;
+    this.moreBtn!.hidden = !compact;
+    if (!compact && this.pop === 'more') this.closePop();
+    if (compact && (this.pop === 'bm' || this.opener === this.bmBtn)) this.closePop();
+  }
+
+  private renderMorePop(box: HTMLElement): void {
+    const bm = this.popButton('Закладка', () => this.togglePop('bm', this.moreBtn!));
+    bm.dataset.k = 'bm';
+    bm.setAttribute('aria-haspopup', 'true');
+    const on = this.o.root.classList.contains('lamp');
+    const lamp = this.popButton(on ? 'Лампа: включена' : 'Лампа: выключена', () => this.toggleLamp());
+    lamp.dataset.k = 'lamp';
+    lamp.setAttribute('aria-pressed', String(on));
+    box.append(bm, lamp);
   }
 
   private renderFontPop(box: HTMLElement): void {
@@ -1032,6 +1060,8 @@ export class Reader {
     this.explicitFs = fs;
     this.o.store.write((s) => {
       s.settings.fontSize = fs ?? STORE_DEFAULT_FONT;
+      if (fs === null) delete s.settings.fontSet;
+      else s.settings.fontSet = true;
     });
     if (this.layout) this.relayout(true);
     else this.fs = fs ?? defaultFontSize(this.win.innerWidth);

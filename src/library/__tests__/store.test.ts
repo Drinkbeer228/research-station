@@ -153,3 +153,16 @@ test('drops invalid anchors and bookmarks', () => {
   assert.equal(r.h.at, null);
   assert.deepEqual(r.good.at, { b: 1, o: 2, h: 'sec', f: 0.5 });
 });
+
+test('fontSet round trips and an old state reads as unset', () => {
+  const mem = new Map<string, string>();
+  const storage = { getItem: (k: string) => mem.get(k) ?? null, setItem: (k: string, v: string) => void mem.set(k, v) };
+  createStore(storage).write((st) => { st.settings.fontSize = 17; st.settings.fontSet = true; });
+  assert.deepEqual(createStore(storage).read().settings, { fontSize: 17, theme: 'paper', fontSet: true });
+  const old = { getItem: () => JSON.stringify({ v: 1, settings: { fontSize: 20, theme: 'paper' } }), setItem: () => {} };
+  assert.deepEqual(createStore(old).read().settings, { fontSize: 20, theme: 'paper' });
+  const junk = { getItem: () => JSON.stringify({ v: 1, settings: { fontSize: 17, theme: 'paper', fontSet: 'yes' } }), setItem: () => {} };
+  assert.equal(createStore(junk).read().settings.fontSet, undefined);
+  createStore(storage).write((st) => { delete st.settings.fontSet; });
+  assert.equal(createStore(storage).read().settings.fontSet, undefined);
+});
