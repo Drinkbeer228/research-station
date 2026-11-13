@@ -174,7 +174,7 @@ test('filters unknown related book ids before taking up to 4 related books and i
   assert.equal(bookItems.length, 4);
   const extLinks = [...p.end.querySelectorAll('.fm-next li.fm-next-ext a')];
   assert.equal(extLinks.length, 2);
-  assert.match(extLinks[0].getAttribute('href')!, /^https:\/\/drinkbeer228\.github\.io\/elephantorina\/\?course=track-anatomy&lesson=les-trunk$/);
+  assert.match(extLinks[0].getAttribute('href')!, /^https:\/\/drinkbeer228\.github\.io\/elephantorina\/\?course=track-4-evolution&lesson=lesson-3-18-1$/);
   assert.match(extLinks[0].textContent!, /Проверить себя · Elephantorina/);
   assert.equal(extLinks[1].getAttribute('href'), 'https://drinkbeer228.github.io/Elephant-keeper-/');
   assert.match(extLinks[1].textContent!, /На практике · Elephant Keeper/);
