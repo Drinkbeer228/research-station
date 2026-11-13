@@ -6,6 +6,9 @@ import {defineConfig} from 'vite';
 export default defineConfig(() => {
   return {
     base: '/research-station/',
+    build: {
+      manifest: true,
+    },
     plugins: [react(), tailwindcss()],
     resolve: {
       alias: {

@@ -1,0 +1,1386 @@
+/* The reader overlay (spec section 8). Look of the draft library-preview.html: desk, lamp, stack with the cat,
+   paper, frame 1.6 px #2C302E. Column geometry is set inline on .flow by layoutFlow; nothing here overrides it. */
+
+html.ers-library-open,
+html.ers-library-open body {
+  touch-action: manipulation;
+}
+
+.ers-reader {
+  --ink: #2C302E;
+  --stone: #F4F1EA;
+  --sand: #E8E4DA;
+  --sage: #2E5A44;
+  --terra: #C86D51;
+  --muted: #5A605D;
+  --paper: #FBF7EC;
+  --paperink: #2A2925;
+  --ui: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+  --serif: 'Source Serif 4 Variable', Georgia, serif;
+  --mono: 'Book Mono', ui-monospace, monospace;
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  overflow: hidden;
+  background: #59402A;
+  color: var(--ink);
+  font-family: var(--ui);
+  outline: none;
+  overscroll-behavior: contain;
+}
+.ers-reader *,
+.ers-reader *::before,
+.ers-reader *::after {
+  box-sizing: border-box;
+}
+
+/* ---- desk ---- */
+.ers-reader .rd-desk {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 58% 74% at 6% 20%, rgba(255, 216, 150, .44), rgba(255, 216, 150, 0) 72%),
+    repeating-linear-gradient(90deg, rgba(0, 0, 0, 0) 0 118px, rgba(30, 18, 8, .16) 118px 120px),
+    linear-gradient(#6E5032, #5A4129);
+}
+.ers-reader .rd-lamp {
+  position: absolute;
+  left: -44px;
+  top: 96px;
+  width: 150px;
+  height: 150px;
+  pointer-events: none;
+}
+.ers-reader .rd-pile {
+  position: absolute;
+  right: 10px;
+  bottom: 26px;
+  width: 128px;
+  height: 112px;
+  pointer-events: none;
+}
+.ers-reader .rd-cat {
+  transform-origin: 62px 58px;
+  animation: rd-breathe 4.6s ease-in-out infinite;
+}
+@keyframes rd-breathe {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.035); }
+}
+
+/* ---- bar, buttons, cards ---- */
+.ers-reader .rd-bar {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 54px;
+  display: flex;
+  align-items: center;
+  padding: 0 12px;
+  z-index: 9;
+  pointer-events: none;
+}
+.ers-reader .rd-bar > * {
+  pointer-events: auto;
+}
+.ers-reader .rd-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 40px;
+  min-width: 40px;
+  padding: 0 14px;
+  border: 1.5px solid var(--ink);
+  border-radius: 10px;
+  background: rgba(244, 241, 234, .94);
+  color: var(--ink);
+  font: 600 13.5px/1 var(--ui);
+  text-decoration: none;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, .2);
+}
+.ers-reader .rd-btn:focus-visible {
+  outline: 2px solid #F7D388;
+  outline-offset: 2px;
+}
+.ers-reader .rd-loading {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(255, 240, 214, .86);
+  font: 600 14px/1.4 var(--ui);
+  letter-spacing: .03em;
+}
+.ers-reader .rd-card {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: min(440px, calc(100% - 32px));
+  background: var(--stone);
+  border: 2px solid var(--ink);
+  border-radius: 16px;
+  box-shadow: 0 24px 48px rgba(0, 0, 0, .35);
+  padding: 22px 22px 18px;
+}
+.ers-reader .rd-card-title {
+  margin: 0 0 8px;
+  font: 700 21px/1.25 var(--ui);
+}
+.ers-reader .rd-card-text {
+  margin: 0 0 16px;
+  font: 400 15px/1.45 var(--ui);
+  color: var(--muted);
+}
+.ers-reader .rd-card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.ers-reader .rd-card .rd-btn {
+  box-shadow: none;
+}
+.ers-reader .rd-card .rd-btn:first-child {
+  background: var(--sage);
+  color: #fff;
+}
+
+/* ---- the book ---- */
+.ers-reader .rd-wrap {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding-top: 30px;
+  perspective: 2600px;
+}
+.ers-reader .rd-book {
+  position: relative;
+  width: calc(var(--W) * 2);
+  height: var(--H);
+  transition: transform .64s cubic-bezier(.3, .1, .25, 1);
+  touch-action: pan-y pinch-zoom;
+}
+.ers-reader .rd-book.single {
+  width: var(--W);
+}
+.ers-reader .rd-book.closed {
+  transform: translateX(calc(var(--W) * -.5));
+}
+.ers-reader .rd-book.closed > .rd-stack.l,
+.ers-reader .rd-book.closed > .rd-pg.L,
+.ers-reader .rd-book.closed > .rd-gut {
+  visibility: hidden;
+}
+.ers-reader .rd-stack {
+  position: absolute;
+  top: 3px;
+  bottom: 3px;
+  background: repeating-linear-gradient(90deg, #EFE7D3 0 1px, #D9CEB5 1px 2px);
+  border: 1.6px solid var(--ink);
+}
+.ers-reader .rd-stack.l {
+  right: calc(100% - 1px);
+  width: var(--sl, 3px);
+  border-radius: 4px 0 0 4px;
+  border-right: 0;
+}
+.ers-reader .rd-stack.r {
+  left: calc(100% - 1px);
+  width: var(--sr, 3px);
+  border-radius: 0 4px 4px 0;
+  border-left: 0;
+}
+.ers-reader .rd-pg {
+  position: absolute;
+  top: 0;
+  width: var(--W);
+  height: var(--H);
+  background: var(--paper);
+  overflow: hidden;
+  border: 1.6px solid var(--ink);
+}
+.ers-reader .rd-pg.L {
+  left: 0;
+  border-radius: 6px 0 0 6px;
+  border-right: 0;
+}
+.ers-reader .rd-pg.R {
+  left: var(--W);
+  border-radius: 0 6px 6px 0;
+  border-left: 0;
+}
+.ers-reader .rd-book.single .rd-pg.R {
+  left: 0;
+  border-radius: 6px;
+  border-left: 1.6px solid var(--ink);
+}
+/* The fall of light into the gutter. */
+.ers-reader .rd-pg::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 2;
+}
+.ers-reader .rd-book:not(.single) .rd-pg.sl::before {
+  background: linear-gradient(270deg, rgba(84, 62, 34, .20), rgba(84, 62, 34, .06) 22px, rgba(84, 62, 34, 0) 64px);
+}
+.ers-reader .rd-book:not(.single) .rd-pg.sr::before {
+  background: linear-gradient(90deg, rgba(84, 62, 34, .20), rgba(84, 62, 34, .06) 22px, rgba(84, 62, 34, 0) 64px);
+}
+/* Running heads and folios: lining figures, size and letter spacing (spec 8.3: no old-style figures or small caps). */
+.ers-reader .rd-head {
+  position: absolute;
+  top: 24px;
+  left: 0;
+  right: 0;
+  font: 600 11.5px/1 var(--serif);
+  letter-spacing: .03em;
+  color: #7d7566;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ers-reader .rd-folio {
+  position: absolute;
+  bottom: 22px;
+  font: 500 12.5px/1 var(--serif);
+  letter-spacing: .04em;
+  color: #6d6658;
+}
+.ers-reader .sl .rd-head {
+  padding: 0 var(--pi) 0 var(--po);
+  text-align: left;
+}
+.ers-reader .sr .rd-head {
+  padding: 0 var(--po) 0 var(--pi);
+  text-align: right;
+}
+.ers-reader .sl .rd-folio {
+  left: var(--po);
+}
+.ers-reader .sr .rd-folio {
+  right: var(--po);
+}
+.ers-reader .rd-win {
+  position: absolute;
+  top: var(--pt);
+  width: var(--cw);
+  height: var(--ch);
+  overflow: hidden;
+}
+.ers-reader .sl .rd-win {
+  left: var(--po);
+}
+.ers-reader .sr .rd-win {
+  left: var(--pi);
+}
+/* Endpaper: the station pattern, on the pages before the first and after the last. */
+.ers-reader .rd-endp {
+  position: absolute;
+  inset: 0;
+  display: none;
+  background: repeating-linear-gradient(135deg, #2E5A44 0 6px, #285039 6px 12px);
+}
+.ers-reader .rd-pg.blank .rd-endp {
+  display: block;
+}
+.ers-reader .rd-pg.blank .rd-win,
+.ers-reader .rd-pg.blank .rd-head,
+.ers-reader .rd-pg.blank .rd-folio {
+  visibility: hidden;
+}
+.ers-reader .rd-gut {
+  position: absolute;
+  left: calc(var(--W) - 1px);
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: rgba(44, 48, 46, .55);
+  z-index: 3;
+}
+.ers-reader .rd-shade {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  pointer-events: none;
+  background: linear-gradient(90deg, rgba(60, 44, 24, .5), rgba(60, 44, 24, .1));
+  opacity: 0;
+}
+.ers-reader .rd-edge {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: calc(var(--W) * .13);
+  z-index: 5;
+  cursor: pointer;
+}
+.ers-reader .rd-edge.p {
+  left: 0;
+}
+.ers-reader .rd-edge.n {
+  right: 0;
+}
+
+/* The turning leaf: two faces, the back one turned. */
+.ers-reader .rd-leaf {
+  position: absolute;
+  top: 0;
+  width: var(--W);
+  height: var(--H);
+  transform-style: preserve-3d;
+  z-index: 6;
+}
+.ers-reader .rd-leaf[hidden] {
+  display: none;
+}
+.ers-reader .rd-leaf.fwd {
+  left: var(--W);
+  transform-origin: left center;
+}
+.ers-reader .rd-leaf.bwd {
+  left: 0;
+  transform-origin: right center;
+}
+.ers-reader .rd-book.single .rd-leaf.fwd {
+  left: 0;
+}
+.ers-reader .rd-face {
+  position: absolute;
+  inset: 0;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+.ers-reader .rd-face .rd-pg {
+  left: 0;
+  top: 0;
+  border-radius: 0;
+}
+.ers-reader .rd-face.b {
+  transform: rotateY(180deg);
+}
+
+/* The cover: discipline colour, an embossed frame, swings open on its spine. */
+.ers-reader .rd-cover {
+  position: absolute;
+  left: var(--W);
+  top: 0;
+  width: var(--W);
+  height: var(--H);
+  transform-origin: left center;
+  transform-style: preserve-3d;
+  z-index: 8;
+}
+.ers-reader .rd-book.single .rd-cover {
+  left: 0;
+}
+.ers-reader .rd-cf,
+.ers-reader .rd-cb {
+  position: absolute;
+  inset: 0;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  border: 2px solid var(--ink);
+  border-radius: 3px 8px 8px 3px;
+}
+.ers-reader .rd-cf {
+  background: var(--cc);
+  color: #FBF0D9;
+  padding: 9%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  text-align: center;
+  box-shadow: inset 16px 0 0 rgba(0, 0, 0, .14);
+}
+.ers-reader .rd-frame {
+  position: absolute;
+  inset: 18px 18px 18px 30px;
+  border: 1.5px solid rgba(255, 232, 186, .65);
+  border-radius: 4px;
+}
+.ers-reader .rd-cover-title {
+  margin: 0;
+  font: 600 clamp(26px, 3.4vw, 44px)/1.12 var(--serif);
+  overflow-wrap: anywhere;
+}
+.ers-reader .rd-cover-series {
+  margin: 0;
+  font: 700 11.5px/1.3 var(--ui);
+  letter-spacing: .2em;
+  text-transform: uppercase;
+  opacity: .86;
+}
+.ers-reader .rd-cb {
+  transform: rotateY(180deg);
+  background: repeating-linear-gradient(135deg, #2E5A44 0 6px, #285039 6px 12px);
+  border-radius: 8px 3px 3px 8px;
+}
+
+/* The measuring block: rendered, so it can be measured, but never seen (not display: none). */
+.ers-reader .rd-measure {
+  position: absolute;
+  left: -99999px;
+  top: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+/* ---- the flow of text ---- */
+.ers-reader .flow {
+  position: relative;
+  font-family: var(--serif);
+  color: var(--paperink);
+  text-align: justify;
+  overflow-wrap: anywhere;
+  hyphens: manual;
+  -webkit-hyphens: manual;
+  orphans: 2;
+  widows: 2;
+  font-optical-sizing: auto;
+  font-variant-numeric: lining-nums;
+  user-select: text;
+  -webkit-user-select: text;
+}
+.ers-reader .flow p {
+  margin: 0;
+  text-indent: 1.25em;
+}
+.ers-reader .flow h2,
+.ers-reader .flow h3,
+.ers-reader .flow h4,
+.ers-reader .flow h5,
+.ers-reader .flow h6 {
+  text-align: left;
+  hyphens: manual;
+  break-after: avoid;
+}
+.ers-reader .flow h2 {
+  font-size: 1.26em;
+  line-height: 1.24;
+  font-weight: 650;
+  margin: calc(var(--lh) * 1.1) 0 calc(var(--lh) * .42);
+  color: var(--sage);
+}
+.ers-reader .flow h3 {
+  font-size: 1.04em;
+  line-height: 1.3;
+  font-weight: 650;
+  font-style: italic;
+  margin: calc(var(--lh) * .7) 0 calc(var(--lh) * .2);
+}
+/* h4–h6: bold run-in subheadings inside a section; they never reach the contents. */
+.ers-reader .flow h4,
+.ers-reader .flow h5,
+.ers-reader .flow h6 {
+  font-size: 1em;
+  line-height: var(--lh);
+  font-weight: 650;
+  margin: calc(var(--lh) * .5) 0 0;
+}
+.ers-reader .flow :is(h2, h3, h4, h5, h6, ul, ol, blockquote, figure, table, hr, math) + p {
+  text-indent: 0;
+}
+/* The text begins with a drop cap. */
+.ers-reader .flow .body > p:first-of-type {
+  text-indent: 0;
+}
+.ers-reader .flow .body > p:first-of-type::first-letter {
+  float: left;
+  font-size: 3.1em;
+  line-height: .82;
+  padding: .07em .08em 0 0;
+  font-weight: 600;
+  color: var(--sage);
+}
+/* hr: a short centred rule. */
+.ers-reader .flow hr {
+  border: 0;
+  border-top: 1.2px solid #a79b83;
+  width: 3.5em;
+  height: 0;
+  margin: calc(var(--lh) * .5 - .6px) auto;
+}
+.ers-reader .flow ul,
+.ers-reader .flow ol {
+  margin: calc(var(--lh) * .3) 0 calc(var(--lh) * .3) 1.25em;
+  padding: 0;
+}
+.ers-reader .flow li {
+  margin: 0 0 .16em;
+  padding-left: .1em;
+}
+.ers-reader .flow li p {
+  text-indent: 0;
+}
+.ers-reader .flow blockquote {
+  margin: calc(var(--lh) * .4) 0;
+  padding: .1em 0 .1em .9em;
+  border-left: 2.5px solid var(--terra);
+  font-size: .92em;
+  line-height: 1.42;
+}
+.ers-reader .flow blockquote p {
+  text-indent: 0;
+}
+.ers-reader .flow em {
+  font-style: italic;
+}
+.ers-reader .flow strong {
+  font-weight: 650;
+}
+.ers-reader .flow del {
+  text-decoration: line-through;
+}
+.ers-reader .flow sup,
+.ers-reader .flow sub {
+  line-height: 0;
+  font-size: .64em;
+}
+.ers-reader .flow sup.note {
+  vertical-align: super;
+  font-weight: 600;
+  font-family: var(--ui);
+}
+.ers-reader .flow sup.note.rd-next-note::before {
+  content: ",";
+  color: #9a8f7a;
+}
+.ers-reader .flow sup.note a {
+  color: var(--terra);
+  text-decoration: none;
+  padding: 0 .05em;
+}
+.ers-reader .flow a {
+  color: var(--sage);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 2px;
+}
+.ers-reader .flow math {
+  font-size: 1.02em;
+}
+/* A display formula: centred, half a line above and below, never split between pages. */
+.ers-reader .flow math[display="block"] {
+  display: block;
+  display: block math;
+  text-align: center;
+  margin: calc(var(--lh) * .5) 0;
+  break-inside: avoid;
+}
+.ers-reader .flow table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: .76em;
+  line-height: 1.3;
+  margin: calc(var(--lh) * .5) 0;
+  text-align: left;
+  break-inside: auto;
+}
+.ers-reader .flow th {
+  border-bottom: 1.6px solid var(--paperink);
+  padding: .26em .4em .26em 0;
+  font-weight: 650;
+  vertical-align: bottom;
+}
+.ers-reader .flow td {
+  border-bottom: .8px solid rgba(70, 60, 40, .3);
+  padding: .26em .4em .26em 0;
+  vertical-align: top;
+}
+.ers-reader .flow img {
+  display: block;
+  max-width: 100%;
+  max-height: calc(var(--ch) * .6);
+  width: auto;
+  height: auto;
+  margin: calc(var(--lh) * .3) auto;
+  border: 1px solid rgba(44, 48, 46, .4);
+  border-radius: 2px;
+}
+/* Plates: diagrams set by layoutFlow at the size where the longest line fits; too small, a folded preview. */
+.ers-reader .flow figure.plate {
+  position: relative;
+  margin: calc(var(--lh) * .45) 0;
+  break-inside: avoid;
+}
+.ers-reader .flow .plate pre {
+  margin: 0;
+  font-family: var(--mono);
+  white-space: pre;
+  overflow: hidden;
+  text-align: left;
+  hyphens: none;
+  background: rgba(120, 100, 60, .07);
+  border: 1px solid rgba(70, 60, 40, .22);
+  border-radius: 3px;
+  padding: .6em .3em;
+  font-variant-ligatures: none;
+}
+.ers-reader .flow .plate pre code {
+  font: inherit;
+}
+.ers-reader .flow .plate pre.wrap {
+  white-space: pre-wrap;
+  font-size: .76em;
+  line-height: 1.35;
+}
+.ers-reader .flow .plate.fold pre {
+  max-height: calc(var(--ch) * .46);
+  overflow: hidden;
+}
+.ers-reader .flow .rd-unf {
+  display: none;
+  position: absolute;
+  right: 6px;
+  bottom: 6px;
+  font: 600 11px/1 var(--ui);
+  background: var(--stone);
+  border: 1.3px solid var(--ink);
+  border-radius: 7px;
+  padding: 6px 8px;
+  color: var(--ink);
+}
+.ers-reader .flow .plate.fold .rd-unf {
+  display: block;
+}
+
+/* ---- front matter, literature, colophon ---- */
+.ers-reader .flow > .fm {
+  break-after: column;
+  text-align: left;
+  hyphens: manual;
+}
+.ers-reader .flow > .fm.title,
+.ers-reader .flow > .fm.verso {
+  height: var(--ch);
+  display: flex;
+  flex-direction: column;
+}
+.ers-reader .flow > .fm.contents {
+  min-height: var(--ch);
+}
+.ers-reader .fm.title {
+  text-align: center;
+}
+.ers-reader .flow .fm-series {
+  margin: 0 0 auto;
+  font: 700 10.5px/1.5 var(--ui);
+  letter-spacing: .2em;
+  text-transform: uppercase;
+  color: var(--terra);
+}
+.ers-reader .flow .fm-title {
+  margin: 0;
+  font-weight: 600;
+  font-size: calc(var(--fs) * 1.46);
+  line-height: 1.2;
+  color: var(--paperink);
+  text-align: center;
+}
+.ers-reader .flow .fm-description {
+  margin: 1.1em 0 0;
+  font-size: .84em;
+  line-height: 1.42;
+  color: #6b6456;
+  font-style: italic;
+  text-indent: 0;
+  text-align: center;
+}
+.ers-reader .flow .fm-authors {
+  margin: auto 0 0;
+  font: 600 14px/1.5 var(--serif);
+  color: var(--paperink);
+  text-indent: 0;
+  text-align: center;
+}
+.ers-reader .flow .fm-library {
+  margin: 0;
+  font: 600 12.5px/1.6 var(--serif);
+  color: #6b6456;
+  text-indent: 0;
+  text-align: center;
+}
+.ers-reader .fm.verso {
+  justify-content: flex-end;
+  font-size: .82em;
+  line-height: 1.42;
+}
+.ers-reader .fm.verso dl {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: .25em 1em;
+  margin: 0;
+}
+.ers-reader .fm.verso dt {
+  color: #7d7566;
+}
+.ers-reader .fm.verso dd {
+  margin: 0;
+  font-weight: 600;
+}
+.ers-reader .flow .fm-unchanged {
+  margin: 1em 0 0;
+  color: #7d7566;
+  text-indent: 0;
+}
+.ers-reader .flow .fm-heading {
+  margin: 0 0 calc(var(--lh) * .5);
+  font-size: 1.4em;
+  line-height: 1.24;
+  font-weight: 650;
+  color: var(--sage);
+}
+.ers-reader .fm.contents ol {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.ers-reader .fm.contents li {
+  display: flex;
+  align-items: baseline;
+  gap: .4em;
+  margin: 0;
+  padding: .26em 0;
+  font-size: .88em;
+  line-height: 1.3;
+}
+.ers-reader .fm.contents li::after {
+  content: "";
+  order: 1;
+  flex: 1;
+  min-width: 14px;
+  border-bottom: 1.2px dotted #a79b83;
+  transform: translateY(-.25em);
+}
+.ers-reader .fm.contents .toc-title {
+  flex: 0 1 auto;
+}
+/* A fixed width, so filling in the numbers after layout cannot rewrap a row. */
+.ers-reader .fm.contents .toc-page {
+  order: 2;
+  flex: none;
+  min-width: 2.2em;
+  text-align: right;
+  font-weight: 600;
+  font-variant-numeric: lining-nums tabular-nums;
+}
+.ers-reader .flow > .refs {
+  break-before: column;
+}
+.ers-reader .refs ol {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  font-size: .76em;
+  line-height: 1.34;
+  text-align: left;
+}
+.ers-reader .refs li {
+  display: flex;
+  gap: .5em;
+  margin: 0 0 .34em;
+}
+.ers-reader .ref-n {
+  flex: none;
+  min-width: 1.6em;
+  text-align: right;
+  font-weight: 600;
+  color: var(--terra);
+}
+.ers-reader .refs li.missing .ref-text {
+  font-style: italic;
+  color: #7d7566;
+}
+.ers-reader .flow > .fm.end {
+  break-before: column;
+  break-after: auto;
+  font-size: .9em;
+  line-height: 1.42;
+}
+.ers-reader .fm.end p {
+  margin: 0 0 .5em;
+  text-indent: 0;
+}
+.ers-reader .fm-people {
+  list-style: none;
+  margin: 0 0 .8em;
+  padding: 0;
+}
+.ers-reader .person-name {
+  font-weight: 600;
+}
+.ers-reader .person-role,
+.ers-reader .person-affiliation,
+.ers-reader .person-orcid {
+  color: #6b6456;
+}
+.ers-reader .fm-next h3,
+.ers-reader .fm-card h3 {
+  margin: 1.1em 0 .5em;
+  font: 700 10.5px/1 var(--ui);
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--terra);
+  font-style: normal;
+}
+.ers-reader .fm-next ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.ers-reader .fm-next li {
+  border: 1.3px solid rgba(44, 48, 46, .55);
+  border-radius: 8px;
+  padding: .5em .7em;
+  margin: .4em 0;
+  background: rgba(255, 255, 255, .4);
+  line-height: 1.3;
+}
+.ers-reader .fm-card dl {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0;
+  margin: 0;
+  border: 1.3px solid rgba(44, 48, 46, .55);
+  border-radius: 3px;
+  font: 500 12px/1.4 var(--ui);
+}
+.ers-reader .fm-card dt,
+.ers-reader .fm-card dd {
+  margin: 0;
+  padding: .5em .7em;
+  border-top: 1px solid rgba(44, 48, 46, .3);
+}
+.ers-reader .fm-card dt {
+  font-weight: 700;
+  letter-spacing: .05em;
+  background: rgba(120, 100, 60, .1);
+}
+.ers-reader .fm-card dt:first-of-type,
+.ers-reader .fm-card dt:first-of-type + dd {
+  border-top: 0;
+}
+
+/* ---- note cards (spec 8.8) ---- */
+.ers-reader .rd-note {
+  overscroll-behavior: contain;
+  position: absolute;
+  z-index: 20;
+  width: min(380px, calc(100% - 16px));
+  max-height: min(60%, 420px);
+  display: flex;
+  flex-direction: column;
+  background: var(--stone);
+  color: var(--ink);
+  border: 1.8px solid var(--ink);
+  border-radius: 12px;
+  box-shadow: 0 14px 34px rgba(0, 0, 0, .38);
+  font: 400 14px/1.45 var(--ui);
+  outline: none;
+}
+.ers-reader .rd-note-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px 8px 0 14px;
+}
+.ers-reader .rd-note-title {
+  margin: 0;
+  font: 700 14px/1.2 var(--ui);
+  letter-spacing: .02em;
+  color: var(--terra);
+}
+.ers-reader .rd-note-x {
+  width: 36px;
+  height: 36px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--muted);
+  font: 400 24px/1 var(--ui);
+  cursor: pointer;
+}
+.ers-reader .rd-note-body {
+  overscroll-behavior: contain;
+  padding: 2px 14px 6px;
+  overflow: auto;
+  overflow-wrap: anywhere;
+  user-select: text;
+  -webkit-user-select: text;
+}
+.ers-reader .rd-note-body a {
+  color: var(--sage);
+  cursor: pointer;
+}
+.ers-reader .rd-note-missing {
+  margin: 0 0 4px;
+  font-style: italic;
+  color: var(--muted);
+}
+.ers-reader .rd-note-label {
+  margin: 0;
+  font: 500 12.5px/1.4 var(--mono);
+  color: var(--muted);
+}
+.ers-reader .rd-note-actions {
+  padding: 6px 14px 12px;
+}
+.ers-reader .rd-note .rd-btn {
+  box-shadow: none;
+  height: 36px;
+  font-size: 13px;
+}
+/* The entry of the literature a card sends to stays marked for a moment. */
+.ers-reader .refs li.rd-flash {
+  background: rgba(247, 211, 136, .55);
+  box-shadow: 0 0 0 4px rgba(247, 211, 136, .55);
+  border-radius: 3px;
+}
+
+/* ---- fold-out plate (spec 8.7): a sheet with the creases of a folded paper ---- */
+.ers-reader .rd-fold {
+  position: absolute;
+  inset: 0;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(30, 22, 12, .58);
+  perspective: 1600px;
+}
+.ers-reader .rd-fold-sheet {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  max-width: 100%;
+  max-height: 100%;
+  min-width: min(100%, 320px);
+  color: var(--paperink);
+  border: 1.6px solid var(--ink);
+  border-radius: 6px;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, .5);
+  transform-origin: 50% 0;
+  animation: rd-unfold .34s cubic-bezier(.2, .7, .25, 1);
+  /* Creases: a groove and a light edge at the thirds, one across the middle, over the paper. */
+  background:
+    linear-gradient(90deg, transparent calc(33.333% - 1px), rgba(70, 60, 40, .2) calc(33.333% - 1px) 33.333%, rgba(255, 255, 255, .6) 33.333% calc(33.333% + 1px), transparent calc(33.333% + 1px)),
+    linear-gradient(90deg, transparent calc(66.666% - 1px), rgba(70, 60, 40, .2) calc(66.666% - 1px) 66.666%, rgba(255, 255, 255, .6) 66.666% calc(66.666% + 1px), transparent calc(66.666% + 1px)),
+    linear-gradient(transparent calc(50% - 1px), rgba(70, 60, 40, .2) calc(50% - 1px) 50%, rgba(255, 255, 255, .6) 50% calc(50% + 1px), transparent calc(50% + 1px)),
+    linear-gradient(90deg, rgba(120, 100, 60, .05) 0 33.333%, transparent 33.333% 66.666%, rgba(120, 100, 60, .05) 66.666%),
+    var(--paper);
+}
+@keyframes rd-unfold {
+  from { transform: rotateX(-24deg) scale(.9); opacity: 0; }
+  to { transform: none; opacity: 1; }
+}
+.ers-reader .rd-fold-bar {
+  flex: none;
+  display: flex;
+  justify-content: flex-end;
+  padding: 8px 8px 0;
+}
+.ers-reader .rd-fold-close {
+  box-shadow: none;
+  height: 36px;
+}
+.ers-reader .rd-fold-body {
+  overscroll-behavior: contain;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  padding: 8px 22px 22px;
+  font: 400 14px/1.4 var(--serif);
+  touch-action: pan-x pan-y pinch-zoom;
+  -webkit-overflow-scrolling: touch;
+  user-select: text;
+  -webkit-user-select: text;
+  outline: none;
+}
+.ers-reader .rd-fold-body figure {
+  margin: 0;
+  width: max-content;
+  max-width: none;
+}
+.ers-reader .rd-fold-body pre {
+  margin: 0;
+  padding: 0;
+  font: 400 13.5px/1.32 var(--mono);
+  font-variant-ligatures: none;
+  white-space: pre;
+  background: none;
+  border: 0;
+  tab-size: 4;
+}
+.ers-reader .rd-fold-body pre code {
+  font: inherit;
+}
+.ers-reader .rd-fold-body pre.wrap {
+  white-space: pre-wrap;
+  max-width: 78ch;
+  font: 400 13.5px/1.4 var(--mono);
+}
+.ers-reader .rd-fold-body table {
+  border-collapse: collapse;
+  font-size: 14px;
+  line-height: 1.35;
+}
+.ers-reader .rd-fold-body th {
+  border-bottom: 1.6px solid var(--paperink);
+  padding: .3em .7em .3em 0;
+  text-align: left;
+  font-weight: 650;
+  vertical-align: bottom;
+}
+.ers-reader .rd-fold-body td {
+  border-bottom: .8px solid rgba(70, 60, 40, .3);
+  padding: .3em .7em .3em 0;
+  vertical-align: top;
+}
+.ers-reader .rd-fold-body img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+.ers-reader .rd-fold-body figcaption {
+  margin-top: .6em;
+  font-size: 13px;
+  font-style: italic;
+  color: #6b6456;
+}
+.ers-reader .rd-fold-body .rd-unf {
+  display: none;
+}
+
+/* ---- narrow screens and reduced motion ---- */
+@media (max-width: 860px) {
+  .ers-reader .rd-pile,
+  .ers-reader .rd-lamp {
+    display: none;
+  }
+}
+@media (max-width: 560px) {
+  /* On a phone the fold-out is the whole screen; it scrolls and the page is zoomed by the fingers. */
+  .ers-reader .rd-fold {
+    padding: 0;
+  }
+  .ers-reader .rd-fold-sheet {
+    width: 100%;
+    height: 100%;
+    border: 0;
+    border-radius: 0;
+  }
+  .ers-reader .rd-fold-body {
+    padding: 4px 14px 20px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ers-reader .rd-fold-sheet {
+    animation: none;
+  }
+  .ers-reader .rd-cat {
+    animation: none;
+  }
+  .ers-reader .rd-book {
+    transition: none;
+  }
+}
+
+/* ---- the bar: «Закрыть», «Оглавление», «Закладка», «Aa», «Лампа», and the counter (spec 8.9; Task 21) ---- */
+.ers-reader .rd-bar {
+  gap: 8px;
+}
+.ers-reader .rd-bar .rd-sp {
+  flex: 1;
+  pointer-events: none;
+}
+.ers-reader .rd-bar [hidden] {
+  display: none;
+}
+.ers-reader .rd-bar .rd-ico {
+  display: none;
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.ers-reader .rd-btn[aria-pressed="true"],
+.ers-reader .rd-btn[aria-expanded="true"] {
+  background: var(--sage);
+  color: #fff;
+}
+.ers-reader .rd-btn:disabled {
+  opacity: .45;
+  cursor: default;
+}
+.ers-reader .rd-count {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 4px;
+  z-index: 9;
+  text-align: center;
+  color: rgba(255, 240, 214, .86);
+  font: 600 13px/1 var(--ui);
+  letter-spacing: .04em;
+  pointer-events: none;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, .5);
+}
+
+/* The menus of «Закладка» and «Aa». */
+.ers-reader .rd-pop {
+  position: absolute;
+  top: 58px;
+  right: 12px;
+  z-index: 10;
+  width: min(320px, calc(100% - 24px));
+  max-height: calc(100% - 100px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 12px;
+  background: var(--stone);
+  color: var(--ink);
+  border: 1.8px solid var(--ink);
+  border-radius: 12px;
+  box-shadow: 0 14px 34px rgba(0, 0, 0, .38);
+}
+.ers-reader .rd-pop-btn,
+.ers-reader .rd-pop-go,
+.ers-reader .rd-pop-x {
+  font: 600 14px/1.2 var(--ui);
+  color: inherit;
+  cursor: pointer;
+}
+.ers-reader .rd-pop-btn {
+  display: block;
+  width: 100%;
+  min-height: 44px;
+  margin-bottom: 6px;
+  padding: 0 12px;
+  background: var(--sand);
+  border: 1.3px solid var(--ink);
+  border-radius: 8px;
+}
+.ers-reader .rd-pop-btn:disabled {
+  opacity: .45;
+  cursor: default;
+}
+.ers-reader .rd-pop-btn:focus-visible,
+.ers-reader .rd-pop-go:focus-visible,
+.ers-reader .rd-pop-x:focus-visible {
+  outline: 2px solid #C86D51;
+  outline-offset: 2px;
+}
+.ers-reader .rd-pop-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.ers-reader .rd-pop-row .rd-pop-step {
+  margin-bottom: 0;
+  width: 56px;
+  flex: none;
+  font-size: 16px;
+}
+.ers-reader .rd-pop-val {
+  flex: 1;
+  text-align: center;
+  font: 600 15px/1 var(--ui);
+}
+.ers-reader .rd-pop-empty {
+  margin: 10px 0 2px;
+  color: var(--muted);
+  font: 400 13.5px/1.4 var(--ui);
+}
+.ers-reader .rd-pop-list {
+  list-style: none;
+  margin: 10px 0 0;
+  padding: 0;
+}
+.ers-reader .rd-pop-list li {
+  display: flex;
+  align-items: stretch;
+  border-top: 1px solid rgba(44, 48, 46, .25);
+}
+.ers-reader .rd-pop-go {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 4px;
+  background: none;
+  border: 0;
+  text-align: left;
+}
+.ers-reader .rd-pop-pg {
+  flex: none;
+  min-width: 2.2em;
+  color: var(--terra);
+}
+.ers-reader .rd-pop-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 500;
+}
+.ers-reader .rd-pop-date {
+  flex: none;
+  color: var(--muted);
+  font-weight: 400;
+  font-size: 12px;
+}
+.ers-reader .rd-pop-x {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  padding: 0;
+  background: none;
+  border: 0;
+  font-size: 20px;
+  color: var(--muted);
+}
+
+/* On a phone the bar holds icons: five 44 px buttons and the gaps are 252 px of 375. «Aa» keeps its letters. */
+@media (max-width: 560px) {
+  .ers-reader .rd-bar .rd-btn {
+    width: 44px;
+    height: 44px;
+    padding: 0;
+  }
+  .ers-reader .rd-bar .rd-btn:not(.rd-txt) .rd-lbl {
+    display: none;
+  }
+  .ers-reader .rd-bar .rd-ico {
+    display: block;
+  }
+  .ers-reader .rd-bar {
+    padding: 0 8px;
+  }
+}
+
+/* ---- the lamp: night paper (spec 8.9). Tokens first, then the greys that the day paper spells out as colours ---- */
+.ers-reader.lamp {
+  --paper: #2B2823;
+  --paperink: #E8E0CB;
+  --sage: #8FC4A4;
+  --terra: #E69A7B;
+  --muted: #B5AE9B;
+  --stone: #37332C;
+  --sand: #46413A;
+  background: #221A11;
+}
+.ers-reader.lamp .rd-desk {
+  background:
+    radial-gradient(ellipse 52% 68% at 6% 20%, rgba(255, 190, 100, .36), rgba(255, 190, 100, 0) 70%),
+    repeating-linear-gradient(90deg, rgba(0, 0, 0, 0) 0 118px, rgba(0, 0, 0, .22) 118px 120px),
+    linear-gradient(#3A2A1A, #271C11);
+}
+.ers-reader.lamp .rd-btn,
+.ers-reader.lamp .rd-card,
+.ers-reader.lamp .rd-note,
+.ers-reader.lamp .rd-pop {
+  color: #F1E8D0;
+  border-color: rgba(255, 232, 186, .55);
+}
+.ers-reader.lamp .rd-btn {
+  background: rgba(46, 42, 35, .94);
+}
+.ers-reader.lamp .rd-btn[aria-pressed="true"],
+.ers-reader.lamp .rd-btn[aria-expanded="true"] {
+  background: #2E5A44;
+}
+.ers-reader.lamp .rd-pop-btn {
+  border-color: rgba(255, 232, 186, .45);
+}
+.ers-reader.lamp .rd-pop-list li {
+  border-top-color: rgba(255, 232, 186, .22);
+}
+.ers-reader.lamp .rd-pg {
+  border-color: #0F0D0A;
+}
+.ers-reader.lamp .rd-stack {
+  background: repeating-linear-gradient(90deg, #6E6757 0 1px, #544E41 1px 2px);
+  border-color: #0F0D0A;
+}
+.ers-reader.lamp .rd-head,
+.ers-reader.lamp .rd-folio,
+.ers-reader.lamp .flow .fm-description,
+.ers-reader.lamp .flow .fm-library,
+.ers-reader.lamp .fm.verso dt,
+.ers-reader.lamp .flow .fm-unchanged,
+.ers-reader.lamp .refs li.missing .ref-text,
+.ers-reader.lamp .person-role,
+.ers-reader.lamp .person-affiliation,
+.ers-reader.lamp .person-orcid,
+.ers-reader.lamp .flow sup.note.rd-next-note::before,
+.ers-reader.lamp .rd-fold-body figcaption {
+  color: #A59D88;
+}
+.ers-reader.lamp .flow hr {
+  border-top-color: #6B6556;
+}
+.ers-reader.lamp .fm.contents li::after {
+  border-bottom-color: #6B6556;
+}
+.ers-reader.lamp .flow td,
+.ers-reader.lamp .fm-card dd,
+.ers-reader.lamp .fm-card dt,
+.ers-reader.lamp .rd-fold-body td {
+  border-color: rgba(232, 224, 203, .28);
+}
+.ers-reader.lamp .flow img,
+.ers-reader.lamp .fm-next li,
+.ers-reader.lamp .fm-card dl {
+  border-color: rgba(232, 224, 203, .45);
+}
+.ers-reader.lamp .fm-next li {
+  background: rgba(255, 255, 255, .05);
+}
+.ers-reader.lamp .flow .plate pre,
+.ers-reader.lamp .fm-card dt {
+  background: rgba(255, 240, 200, .07);
+}
+.ers-reader.lamp .flow .rd-unf {
+  background: #37332C;
+  color: #F1E8D0;
+  border-color: rgba(255, 232, 186, .55);
+}
+.ers-reader.lamp .rd-count {
+  color: rgba(255, 232, 186, .78);
+}
+.ers-reader.lamp .rd-lamp {
+  filter: drop-shadow(0 0 26px rgba(255, 190, 100, .7));
+}
+
+/* ---- readers of the screen (spec 12; Task 22): the linear copy of the book and the page announcement ---- */
+.ers-reader .sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}

@@ -1,0 +1,14 @@
+/* Book fonts. Imported only by the lazy reader chunk (reader/fontStyles.ts).
+   Source Serif 4 Variable: the package's own stylesheets (all subsets; the
+   browser fetches only those whose unicode-range it needs). */
+@import '@fontsource-variable/source-serif-4/wght.css';
+@import '@fontsource-variable/source-serif-4/wght-italic.css';
+
+/* Book Mono: subset of JetBrains Mono (scripts/subset-mono.sh), for diagrams. */
+@font-face {
+  font-family: 'Book Mono';
+  font-style: normal;
+  font-weight: 400;
+  font-display: block;
+  src: url(./book-mono.woff2) format('woff2');
+}
