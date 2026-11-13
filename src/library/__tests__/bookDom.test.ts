@@ -118,3 +118,16 @@ test('shows the reader card with dates and sets metadata as text, not markup', (
   assert.match(p.end.textContent!, /2026-02-01/);
   assert.match(p.end.textContent!, /2026-02-03/);
 });
+
+test('shows contributor roles in Russian', () => {
+  const p = build({ contributors: [
+    { name: 'Анна Слонова', role: 'author', affiliation: null, orcid: null, url: null },
+    { name: 'Борис Хоботов', role: 'Editor', affiliation: null, orcid: null, url: null },
+    { name: 'Вера Бивнева', role: 'научный редактор', affiliation: null, orcid: null, url: null },
+  ] });
+  const end = p.end.textContent!;
+  assert.match(end, /Анна Слонова · автор/);
+  assert.match(end, /Борис Хоботов · редактор/);
+  assert.match(end, /Вера Бивнева · научный редактор/);
+  assert.doesNotMatch(end, /author|[Ee]ditor/);
+});

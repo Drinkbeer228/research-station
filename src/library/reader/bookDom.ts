@@ -42,6 +42,14 @@ function el(doc: Document, tag: string, cls?: string, text?: string): HTMLElemen
 
 const isAuthor = (c: Contributor) => c.role.trim().toLowerCase() === 'author' || c.role.trim().toLowerCase() === 'автор';
 
+/** `author` and `editor` (the schema's English values) are shown in Russian; any other role is printed as written. */
+function roleLabel(role: string): string {
+  const key = role.trim().toLowerCase();
+  if (key === 'author') return 'автор';
+  if (key === 'editor') return 'редактор';
+  return role;
+}
+
 function titlePage(doc: Document, catalog: CatalogFile, entry: CatalogBook): HTMLElement {
   const sec = el(doc, 'section', 'fm title');
   const discipline = entry.kind === 'reference' ? null : catalog.disciplines.find((d) => d.id === entry.discipline)?.name ?? null;
@@ -128,7 +136,7 @@ function people(doc: Document, list: Contributor[]): HTMLElement {
   const ul = el(doc, 'ul', 'fm-people');
   for (const c of list) {
     const li = el(doc, 'li');
-    li.append(el(doc, 'span', 'person-name', c.name), el(doc, 'span', 'person-role', ` · ${c.role}`));
+    li.append(el(doc, 'span', 'person-name', c.name), el(doc, 'span', 'person-role', ` · ${roleLabel(c.role)}`));
     if (c.affiliation) li.append(el(doc, 'span', 'person-affiliation', `, ${c.affiliation}`));
     if (c.orcid) li.append(el(doc, 'span', 'person-orcid', `, ORCID ${c.orcid}`));
     if (c.url) li.append(doc.createTextNode(', '), linkTo(doc, c.url, c.url));
