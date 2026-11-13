@@ -129,7 +129,7 @@ test.describe('notes, fold-outs and links', () => {
     const at = await reveal(page, 'a[data-book]');
     await page.mouse.click(at.x, at.y);
     await expect.poll(() => new URL(page.url()).hash).not.toBe(`#/library/${BOOK}`);
-    expect(new URL(page.url()).hash).toMatch(/^#\/library\/(anatomy|ethogram|veterinary)\/[a-z0-9-]+$/);
+    expect(new URL(page.url()).hash).toMatch(/^#\/library\/anatomy\/[a-z0-9-]+$/);
     await page.keyboard.press('Escape');
     await expect(page.locator('.ers-reader')).toHaveCount(0);
     expect(new URL(page.url()).hash).toBe('');

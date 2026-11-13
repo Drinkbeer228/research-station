@@ -102,6 +102,8 @@ export class Reader {
   /** The key of the note whose card is open, so a second click on the same number closes it. */
   private noteKey: string | null = null;
   private hoverFrame = 0;
+  /** Type of the last pointer to go down: a browser may deliver `click` as a plain MouseEvent that lacks it. */
+  private lastPointer = 'mouse';
   private fontsChanged = false;
   private readonly cleanup: Array<() => void> = [];
 
@@ -656,9 +658,14 @@ export class Reader {
     const root = this.o.root;
     const onClick = (e: MouseEvent) => this.onClick(e);
     const onRefs = (e: Event) => this.showRefs((e as CustomEvent<{ key: string }>).detail.key);
+    const onDown = (e: PointerEvent) => {
+      this.lastPointer = e.pointerType || 'mouse';
+    };
+    root.addEventListener('pointerdown', onDown, true);
     root.addEventListener('click', onClick);
     root.addEventListener(REFS_EVENT, onRefs);
     return () => {
+      root.removeEventListener('pointerdown', onDown, true);
       root.removeEventListener('click', onClick);
       root.removeEventListener(REFS_EVENT, onRefs);
     };
@@ -683,11 +690,17 @@ export class Reader {
     if (t.closest('.rd-note')) {
       const book = t.closest('a[data-book]');
       if (book) this.openBook(book.getAttribute('data-book') ?? '');
+      const ext = t.closest('a[href^="https:"]');
+      if (ext) {
+        // Same as in the windows: a new tab, never away from the reader.
+        e.preventDefault();
+        this.win.open(ext.getAttribute('href')!, '_blank', 'noopener,noreferrer');
+      }
       return;
     }
     if (t.closest('.rd-fold, .rd-bar') || !this.layout) return;
     if (this.busy || performance.now() < this.quietUntil) return;
-    const hit = this.hit(e.clientX, e.clientY, NOTE_SLOP[(e as PointerEvent).pointerType] ?? NOTE_SLOP.mouse);
+    const hit = this.hit(e.clientX, e.clientY, NOTE_SLOP[(e as PointerEvent).pointerType || (e.detail === 0 ? 'mouse' : this.lastPointer)] ?? NOTE_SLOP.mouse);
     if (noteOpen(this.o.root)) {
       // A click away from the card puts it away; a click on another number shows that one.
       const same = hit?.kind === 'note' && hit.key === this.noteKey;

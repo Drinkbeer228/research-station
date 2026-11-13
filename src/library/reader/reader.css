@@ -871,6 +871,7 @@ html.ers-library-open body {
 
 /* ---- note cards (spec 8.8) ---- */
 .ers-reader .rd-note {
+  overscroll-behavior: contain;
   position: absolute;
   z-index: 20;
   width: min(380px, calc(100% - 16px));
@@ -909,6 +910,7 @@ html.ers-library-open body {
   cursor: pointer;
 }
 .ers-reader .rd-note-body {
+  overscroll-behavior: contain;
   padding: 2px 14px 6px;
   overflow-y: auto;
   overflow-wrap: anywhere;
@@ -992,6 +994,7 @@ html.ers-library-open body {
   height: 36px;
 }
 .ers-reader .rd-fold-body {
+  overscroll-behavior: contain;
   flex: 1 1 auto;
   min-height: 0;
   overflow: auto;
