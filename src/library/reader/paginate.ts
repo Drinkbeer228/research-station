@@ -87,8 +87,10 @@ function reset(parts: FlowParts): void {
   parts.flow.querySelectorAll(':scope > section.fm.blank').forEach((b) => b.remove());
   parts.body.querySelectorAll<HTMLElement>(`[${KEPT}]`).forEach((h) => {
     h.style.breakBefore = '';
+    h.style.marginTop = '';
     h.removeAttribute(KEPT);
   });
+  parts.flow.querySelectorAll<HTMLElement>(':scope > section.refs, :scope > section.fm.end').forEach((s) => (s.style.marginTop = ''));
   parts.body.querySelectorAll<HTMLElement>('figure.plate').forEach((fig) => {
     fig.classList.remove('fold');
     const pre = fig.querySelector('pre');
@@ -110,6 +112,15 @@ export function layoutFlow(parts: FlowParts, g: Geometry): Layout {
   if (!win) throw new Error('layoutFlow: the flow must be attached to a rendered measuring block');
   reset(parts);
   applyGeometry(flow, g);
+
+  // Firefox does not know `break-before: column` (and its `always` breaks pages only). A margin as high as a column,
+  // on the first block of the new column, is cut at the column break and leaves the block at the top of the next one.
+  const forcesColumns = win.CSS?.supports?.('break-before', 'column') ?? true;
+  const startColumn = (e: HTMLElement) => {
+    if (forcesColumns) e.style.breakBefore = 'column';
+    else e.style.marginTop = px(g.ch);
+  };
+  if (!forcesColumns) flow.querySelectorAll<HTMLElement>(':scope > section.refs, :scope > section.fm.end').forEach(startColumn);
 
   const origin = () => flow.getBoundingClientRect();
   const colOf = (left: number) => pageIndex(left - origin().left, g);
@@ -174,7 +185,7 @@ export function layoutFlow(parts: FlowParts, g: Geometry): Layout {
     }));
     const fresh = headingsToPush(items).map((i) => els[i]).filter((h) => !h.hasAttribute(KEPT));
     for (const h of fresh) {
-      h.style.breakBefore = 'column';
+      startColumn(h);
       h.setAttribute(KEPT, '');
     }
     return fresh.length > 0;
