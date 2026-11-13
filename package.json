@@ -9,7 +9,9 @@
     "preview": "vite preview",
     "clean": "rm -rf dist server.js",
     "test": "tsx --test src/campusLogic.test.ts src/library/__tests__/*.test.ts",
-    "lint": "tsc --noEmit"
+    "lint": "tsc --noEmit",
+    "test:e2e": "playwright test",
+    "check:budgets": "node scripts/check-budgets.mjs"
   },
   "dependencies": {
     "@fontsource-variable/source-serif-4": "^5.3.1",

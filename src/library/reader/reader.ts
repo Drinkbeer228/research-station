@@ -619,7 +619,11 @@ export class Reader {
     const onLost = (e: PointerEvent) => {
       if (this.drag && e.pointerId === this.drag.id) this.abandonDrag();
     };
-    on(this.bookEl, 'lostpointercapture', onLost);
+    // `setPointerCapture` on the book releases the capture the touch had on the element under the finger: that fires
+    // `lostpointercapture` too, bubbling up to the book, while the book holds the capture. Only a real loss ends the drag.
+    on(this.bookEl, 'lostpointercapture', (e) => {
+      if (!this.bookEl.hasPointerCapture(e.pointerId)) onLost(e);
+    });
     this.win.addEventListener('pointerup', onLost);
     this.win.addEventListener('pointercancel', onLost);
     this.cleanup.push(
