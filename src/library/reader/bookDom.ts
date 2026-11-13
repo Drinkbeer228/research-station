@@ -67,8 +67,10 @@ const BASIS_LABELS: Record<string, string> = {
 };
 const DIFFICULTY_LABELS: Record<string, string> = {
   basic: 'Базовый уровень', // article.difficultyBasic
+  beginner: 'Базовый уровень', // article.difficultyBasic (controller ruling: no own string on the site)
   intermediate: 'Средний уровень', // article.difficultyIntermediate
   advanced: 'Монографический уровень', // article.difficultyAdvanced
+  expert: 'Монографический уровень', // article.difficultyAdvanced (controller ruling: no own string on the site)
 };
 
 const label = (map: Record<string, string>, value: string): string => (Object.hasOwn(map, value) ? map[value] : value);

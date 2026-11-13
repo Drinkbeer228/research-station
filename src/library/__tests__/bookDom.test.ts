@@ -145,8 +145,10 @@ test('shows verso metadata in the site\'s Russian wording, unknown values as wri
   assert.ok(dd({ evidenceLevel: 'hypothesis', difficulty: 'intermediate' }).includes('Уровень доказательности: Предварительные данные'));
   assert.ok(dd({ difficulty: 'intermediate' }).includes('Сложность: Средний уровень'));
   assert.ok(dd({ difficulty: 'basic' }).includes('Сложность: Базовый уровень'));
-  const unknown = dd({ evidenceLevel: 'contested', evidenceBasis: ['peer_reviewed', 'archive'], difficulty: 'expert' });
+  assert.ok(dd({ difficulty: 'beginner' }).includes('Сложность: Базовый уровень'));
+  assert.ok(dd({ difficulty: 'expert' }).includes('Сложность: Монографический уровень'));
+  const unknown = dd({ evidenceLevel: 'contested', evidenceBasis: ['peer_reviewed', 'archive'], difficulty: 'pro' });
   assert.ok(unknown.includes('Уровень доказательности: contested'));
   assert.ok(unknown.includes('Основания: рецензируемые журналы, archive'));
-  assert.ok(unknown.includes('Сложность: expert'));
+  assert.ok(unknown.includes('Сложность: pro'));
 });
