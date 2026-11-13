@@ -9,7 +9,7 @@ import type { FlowParts } from './bookDom';
 export interface Geometry { spread: boolean; W: number; H: number; fs: number; lh: number; pt: number; pb: number; po: number; pi: number; cw: number; ch: number; gap: number }
 
 const GAP = 120;
-/** Line height of a diagram, relative to its own size. */
+/** Line height of a diagram, relative to its own size: the value of the measured preview (`fitPlates` in the prototype). */
 const PLATE_LINE = 1.3;
 /** A folded preview is shrunk into the rest of the previous column only if at least this many text lines remain. */
 const MIN_REST_LINES = 6;
@@ -143,25 +143,29 @@ export function layoutFlow(parts: FlowParts, g: Geometry): Layout {
     if (fold) folded.push(fig);
   });
   // A preview pushed to the next column leaves a gap; if the gap holds at least 6 lines, shrink the preview into it.
-  for (const fig of folded) {
-    const pre = fig.querySelector('pre');
-    const prev = fig.previousElementSibling;
-    if (!pre || !prev) continue;
-    const prevCol = colOf(lastRect(prev).left);
-    if (pageOf(fig) <= prevCol) continue;
-    const rest = g.ch - (lastRect(prev).bottom - origin().top);
-    if (rest < MIN_REST_LINES * g.lh) continue;
-    const cs = win.getComputedStyle(fig);
-    const prevMargin = parseFloat(win.getComputedStyle(prev).marginBottom) || 0;
-    const chrome = fig.getBoundingClientRect().height - pre.getBoundingClientRect().height;
-    const max = Math.floor(rest - Math.max(prevMargin, parseFloat(cs.marginTop) || 0) - chrome);
-    if (max <= 0 || max >= pre.getBoundingClientRect().height) continue;
-    pre.style.maxHeight = px(max);
-    if (pageOf(fig) !== prevCol) pre.style.maxHeight = ''; // did not fit after all: keep the preview whole
-  }
+  // Redone from scratch on every pass, in document order, because each pushed heading moves everything after it.
+  const shrink = (): string => {
+    for (const fig of folded) fig.querySelector('pre')!.style.maxHeight = '';
+    for (const fig of folded) {
+      const pre = fig.querySelector('pre')!;
+      const prev = fig.previousElementSibling;
+      if (!prev) continue;
+      const prevCol = colOf(lastRect(prev).left);
+      if (pageOf(fig) <= prevCol) continue;
+      const rest = g.ch - (lastRect(prev).bottom - origin().top);
+      if (rest < MIN_REST_LINES * g.lh) continue;
+      const prevMargin = parseFloat(win.getComputedStyle(prev).marginBottom) || 0;
+      const chrome = fig.getBoundingClientRect().height - pre.getBoundingClientRect().height;
+      const max = Math.floor(rest - Math.max(prevMargin, parseFloat(win.getComputedStyle(fig).marginTop) || 0) - chrome);
+      if (max <= 0 || max >= pre.getBoundingClientRect().height) continue;
+      pre.style.maxHeight = px(max);
+      if (pageOf(fig) !== prevCol) pre.style.maxHeight = ''; // did not fit after all: keep the preview whole
+    }
+    return folded.map((fig) => fig.querySelector('pre')!.style.maxHeight).join('|');
+  };
 
   // 4. Keep with next: a heading left at a column end, or split between columns, starts the next column.
-  for (let pass = 0; pass < MAX_KEEP_PASSES; pass++) {
+  const push = (): boolean => {
     const els = Array.from(body.children) as HTMLElement[];
     const items = els.map((e) => ({
       heading: HEADING.test(e.tagName),
@@ -169,12 +173,24 @@ export function layoutFlow(parts: FlowParts, g: Geometry): Layout {
       split: HEADING.test(e.tagName) && colOf(lastRect(e).left) !== pageOf(e),
     }));
     const fresh = headingsToPush(items).map((i) => els[i]).filter((h) => !h.hasAttribute(KEPT));
-    if (!fresh.length) break;
     for (const h of fresh) {
       h.style.breakBefore = 'column';
       h.setAttribute(KEPT, '');
     }
+    return fresh.length > 0;
+  };
+
+  // Steps 5 and 4 together, until neither changes anything, at most 4 passes. A pass that ends with pushed
+  // headings is followed by one last shrink, so the previews always match the final heading breaks.
+  let shrunk: string | null = null;
+  let pushed = false;
+  for (let pass = 0; pass < MAX_KEEP_PASSES; pass++) {
+    const now = shrink();
+    pushed = push();
+    if (!pushed && now === shrunk) break;
+    shrunk = now;
   }
+  if (pushed) shrink();
 
   // 3. Pages by the zero-height sentinel: at the very top of a column it means that column is empty.
   const s = firstRect(sentinel);
