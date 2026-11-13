@@ -50,6 +50,29 @@ function roleLabel(role: string): string {
   return role;
 }
 
+/**
+ * Verso values in the wording of the Elephantology site (`src/i18n/ru.ts`, `article.*`); the evidence levels are
+ * grouped as `ArticleMetadataHeader.getEvidenceLabel` groups them. A value with no entry is printed as written.
+ */
+const EVIDENCE_LABELS: Record<string, string> = {
+  established: 'Высокая доказательность', high: 'Высокая доказательность', // article.evidenceHigh
+  moderate: 'Умеренная доказательность', // article.evidenceModerate
+  preliminary: 'Предварительные данные', limited: 'Предварительные данные', hypothesis: 'Предварительные данные', // article.evidencePreliminary
+};
+const BASIS_LABELS: Record<string, string> = {
+  peer_reviewed: 'рецензируемые журналы', // article.basisPeerReviewed
+  primary_studies: 'первичные исследования', // article.basisPrimaryStudies
+  field_reports: 'полевые мониторинги', // article.basisFieldReports
+  clinical_guidelines: 'клинические протоколы', // article.basisClinicalGuidelines
+};
+const DIFFICULTY_LABELS: Record<string, string> = {
+  basic: 'Базовый уровень', // article.difficultyBasic
+  intermediate: 'Средний уровень', // article.difficultyIntermediate
+  advanced: 'Монографический уровень', // article.difficultyAdvanced
+};
+
+const label = (map: Record<string, string>, value: string): string => (Object.hasOwn(map, value) ? map[value] : value);
+
 function titlePage(doc: Document, catalog: CatalogFile, entry: CatalogBook): HTMLElement {
   const sec = el(doc, 'section', 'fm title');
   const discipline = entry.kind === 'reference' ? null : catalog.disciplines.find((d) => d.id === entry.discipline)?.name ?? null;
@@ -73,10 +96,10 @@ function versoPage(doc: Document, catalog: CatalogFile, entry: CatalogBook): HTM
     dl.append(el(doc, 'dt', undefined, label), el(doc, 'dd', undefined, value));
   };
   row('Шифр', shelfmark(catalog, entry.id));
-  row('Уровень доказательности', entry.evidenceLevel);
-  row('Основания', entry.evidenceBasis.length ? entry.evidenceBasis.join(', ') : null);
+  row('Уровень доказательности', entry.evidenceLevel && label(EVIDENCE_LABELS, entry.evidenceLevel));
+  row('Основания', entry.evidenceBasis.length ? entry.evidenceBasis.map((b) => label(BASIS_LABELS, b)).join(', ') : null);
   row('Редакционный пересмотр', entry.lastReviewed);
-  row('Сложность', entry.difficulty);
+  row('Сложность', entry.difficulty && label(DIFFICULTY_LABELS, entry.difficulty));
   row('Время чтения', entry.readingMinutes > 0 ? `${entry.readingMinutes} мин` : null);
   sec.append(dl, el(doc, 'p', 'fm-unchanged', UNCHANGED));
   return sec;

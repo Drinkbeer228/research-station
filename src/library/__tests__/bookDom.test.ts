@@ -131,3 +131,22 @@ test('shows contributor roles in Russian', () => {
   assert.match(end, /Вера Бивнева · научный редактор/);
   assert.doesNotMatch(end, /author|[Ee]ditor/);
 });
+
+test('shows verso metadata in the site\'s Russian wording, unknown values as written', () => {
+  const dd = (over: Partial<CatalogBook>) => {
+    const p = build(over);
+    return Array.from(p.flow.querySelectorAll('.fm.verso dt')).map((dt) => `${dt.textContent}: ${dt.nextElementSibling!.textContent}`);
+  };
+  const rows = dd({ evidenceLevel: 'established', evidenceBasis: ['peer_reviewed', 'primary_studies', 'field_reports', 'clinical_guidelines'], difficulty: 'advanced' });
+  assert.ok(rows.includes('Уровень доказательности: Высокая доказательность'));
+  assert.ok(rows.includes('Основания: рецензируемые журналы, первичные исследования, полевые мониторинги, клинические протоколы'));
+  assert.ok(rows.includes('Сложность: Монографический уровень'));
+  assert.ok(dd({ evidenceLevel: 'moderate', difficulty: 'basic' }).includes('Уровень доказательности: Умеренная доказательность'));
+  assert.ok(dd({ evidenceLevel: 'hypothesis', difficulty: 'intermediate' }).includes('Уровень доказательности: Предварительные данные'));
+  assert.ok(dd({ difficulty: 'intermediate' }).includes('Сложность: Средний уровень'));
+  assert.ok(dd({ difficulty: 'basic' }).includes('Сложность: Базовый уровень'));
+  const unknown = dd({ evidenceLevel: 'contested', evidenceBasis: ['peer_reviewed', 'archive'], difficulty: 'expert' });
+  assert.ok(unknown.includes('Уровень доказательности: contested'));
+  assert.ok(unknown.includes('Основания: рецензируемые журналы, archive'));
+  assert.ok(unknown.includes('Сложность: expert'));
+});
