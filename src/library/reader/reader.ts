@@ -2,6 +2,10 @@
  * The book on the desk (spec sections 8.1, 8.2, 8.5 step 7 and 8.6). The measuring flow from `buildFlow` is laid out
  * by `layoutFlow`; every visible page is a window on one column of an inert, aria-hidden copy of that flow: two on a
  * spread, one on a single page, and two more for the turning leaf, made on the first turn.
+ *
+ * The windows are inert, so a click never reaches what is in them: it lands on the window or the edge strip, and
+ * `hit` finds the note, link, contents row or plate under the point from the rectangles of the visible window's
+ * own elements (notes, plates and links of spec 8.7 and 8.8; Task 20).
  */
 import type { BookFile, CatalogBook, CatalogFile } from '../types';
 import type { Store } from '../store';
@@ -10,6 +14,9 @@ import { computeGeometry, defaultFontSize, layoutFlow, pageIndex, type Geometry,
 import { loadBookFonts } from './fonts';
 import { installCopyCleaner } from './hyphenate';
 import { runTurn, TURN_EASING } from './turn';
+import { bookHash, parseRoute } from '../router';
+import { findNote, hideNote, noteOpen, REFS_EVENT, showNote, tidyNoteSpacing } from './notes';
+import { closeFoldout, foldoutOpen, openFoldout } from './foldout';
 
 export interface ReaderOptions { doc: Document; root: HTMLElement; catalog: CatalogFile; entry: CatalogBook; book: BookFile; store: Store; reducedMotion: boolean; onClose(): void }
 
@@ -25,6 +32,23 @@ const SWIPE_SLOP = 10;
 const VELOCITY_WINDOW = 100;
 /** After a gesture, the click that some browsers send for the same touch is ignored for this long. */
 const CLICK_QUIET_MS = 400;
+/** How far from a note number (px) a click still counts as on it: the number is a few pixels wide. */
+const NOTE_SLOP: Record<string, number> = { mouse: 3, pen: 8, touch: 14 };
+const LINK_SLOP = 2;
+const FLASH_MS = 2200;
+
+type Hit =
+  | { kind: 'note'; el: Element; key: string | null; n: string | null }
+  | { kind: 'hash'; h: string }
+  | { kind: 'book'; id: string }
+  | { kind: 'ext'; href: string }
+  | { kind: 'toc'; h: string }
+  | { kind: 'plate'; fig: Element };
+
+/** Distance from a point to a rectangle (0 inside it). */
+function distance(r: DOMRect, x: number, y: number): number {
+  return Math.hypot(Math.max(r.left - x, 0, x - r.right), Math.max(r.top - y, 0, y - r.bottom));
+}
 
 /** Cover colours: the discipline colours of the hall draft (`prototype/preview.template.html`, `DISC`). */
 const COVER_COLORS: Record<string, string> = {
@@ -74,6 +98,10 @@ export class Reader {
   private drag: Drag | null = null;
   private quietUntil = 0;
   private relayoutTimer: ReturnType<typeof setTimeout> | undefined;
+  private flashTimer: ReturnType<typeof setTimeout> | undefined;
+  /** The key of the note whose card is open, so a second click on the same number closes it. */
+  private noteKey: string | null = null;
+  private hoverFrame = 0;
   private fontsChanged = false;
   private readonly cleanup: Array<() => void> = [];
 
@@ -144,6 +172,8 @@ export class Reader {
     if (this.closed) return;
     this.closed = true;
     clearTimeout(this.relayoutTimer);
+    clearTimeout(this.flashTimer);
+    this.win.cancelAnimationFrame(this.hoverFrame);
     for (const off of this.cleanup.splice(0)) off();
     this.o.root.replaceChildren();
   }
@@ -152,6 +182,7 @@ export class Reader {
     if (this.busy || this.closed || !this.layout) return;
     const target = this.s + dir;
     if (target < 0 || target > this.maxS) return;
+    this.dismissNote();
     this.busy = true;
     try {
       if (this.o.reducedMotion) await this.fade(target);
@@ -163,6 +194,7 @@ export class Reader {
 
   goToPage(page: number): void {
     if (this.closed || !this.layout || !this.g || this.busy) return;
+    this.dismissNote();
     this.s = this.spreadOf(page);
     this.render();
   }
@@ -218,6 +250,7 @@ export class Reader {
     }
     const g = this.geometry();
     const kept = keep && this.layout ? this.anchor() : null;
+    this.dismissNote(); // the card is placed beside a number that is about to move
     this.g = g;
     this.layout = layoutFlow(this.parts, g);
     const refs = this.parts.flow.querySelector(':scope > section.refs');
@@ -241,10 +274,12 @@ export class Reader {
 
   /**
    * Display-only marks, made before the first measurement: the «Развернуть вклейку» label of a folded plate
-   * (absolutely placed, so it adds no height), and the comma between note numbers that touch (`1,3`); CSS alone
-   * cannot tell `<sup>1</sup><sup>3</sup>` from two notes with text between them.
+   * (absolutely placed, so it adds no height), the space before a note number (spec 8.8: removed at display only),
+   * and the comma between note numbers that touch (`1,3`); CSS alone cannot tell `<sup>1</sup><sup>3</sup>` from two
+   * notes with text between them.
    */
   private prepareBody(body: HTMLElement): void {
+    tidyNoteSpacing(body);
     body.querySelectorAll('figure.plate').forEach((fig) => {
       const b = this.el('button', 'rd-unf', 'Развернуть вклейку');
       b.setAttribute('type', 'button');
@@ -298,9 +333,7 @@ export class Reader {
     if (g.spread) book.append(this.el('div', 'rd-gut'));
     for (const [cls, dir] of [['rd-edge p', -1], ['rd-edge n', 1]] as const) {
       const edge = this.el('div', cls);
-      edge.addEventListener('click', () => {
-        if (performance.now() >= this.quietUntil) void this.turn(dir);
-      });
+      edge.dataset.dir = String(dir);
       book.append(edge);
     }
     if (this.cover) book.append(this.cover);
@@ -498,6 +531,7 @@ export class Reader {
       () => this.doc.fonts.removeEventListener('loadingdone', onFonts),
       installCopyCleaner(this.o.root),
     );
+    this.cleanup.push(this.listenRoot());
     on(this.bookEl, 'pointerdown', (e) => this.onPointerDown(e));
     on(this.bookEl, 'pointermove', (e) => this.onPointerMove(e));
     on(this.bookEl, 'pointerup', (e) => this.onPointerUp(e, false));
@@ -506,9 +540,16 @@ export class Reader {
 
   private onKey(e: KeyboardEvent): void {
     if (e.defaultPrevented || e.ctrlKey || e.metaKey || e.altKey) return;
+    // A fold-out lies over the whole book: its keys (arrows, space) scroll it, only Esc is the reader's.
+    if (e.key !== 'Escape' && foldoutOpen(this.o.root)) return;
     switch (e.key) {
       case 'Escape':
-        // The book is the only layer of this reader so far; notes and fold-outs (Task 20) close before it.
+        // The topmost layer first: a fold-out, then a note card, then the book itself.
+        if (closeFoldout(this.o.root)) break;
+        if (noteOpen(this.o.root)) {
+          this.dismissNote();
+          break;
+        }
         this.o.onClose();
         break;
       case 'ArrowRight':
@@ -546,6 +587,7 @@ export class Reader {
   }
 
   private onPointerMove(e: PointerEvent): void {
+    if (e.pointerType === 'mouse' && !this.drag) this.hover(e.clientX, e.clientY);
     const d = this.drag;
     if (!d || e.pointerId !== d.id) return;
     const dx = e.clientX - d.x0;
@@ -605,6 +647,195 @@ export class Reader {
       else await this.revertTurn(d.ctx, p);
     } finally {
       this.busy = false;
+    }
+  }
+
+  // ---- notes, plates and links (spec 8.7 and 8.8) --------------------------------------------------------------
+
+  private listenRoot(): () => void {
+    const root = this.o.root;
+    const onClick = (e: MouseEvent) => this.onClick(e);
+    const onRefs = (e: Event) => this.showRefs((e as CustomEvent<{ key: string }>).detail.key);
+    root.addEventListener('click', onClick);
+    root.addEventListener(REFS_EVENT, onRefs);
+    return () => {
+      root.removeEventListener('click', onClick);
+      root.removeEventListener(REFS_EVENT, onRefs);
+    };
+  }
+
+  private dismissNote(): void {
+    this.noteKey = null;
+    hideNote(this.o.root);
+  }
+
+  /** Every click in the reader: the card and the fold-out take their own, the rest is resolved against the page. */
+  private onClick(e: MouseEvent): void {
+    const t = e.target as Element | null;
+    if (this.closed || !t || t.nodeType !== 1) return;
+    const link = t.closest('a[href^="#"]');
+    if (link && this.o.root.contains(link)) {
+      // A link to a place in the book never changes `location.hash` (it holds the route): turn to the place instead.
+      e.preventDefault();
+      this.goToHeading(link.getAttribute('href')!.slice(1));
+      return;
+    }
+    if (t.closest('.rd-note')) {
+      const book = t.closest('a[data-book]');
+      if (book) this.openBook(book.getAttribute('data-book') ?? '');
+      return;
+    }
+    if (t.closest('.rd-fold, .rd-bar') || !this.layout) return;
+    if (this.busy || performance.now() < this.quietUntil) return;
+    const hit = this.hit(e.clientX, e.clientY, NOTE_SLOP[(e as PointerEvent).pointerType] ?? NOTE_SLOP.mouse);
+    if (noteOpen(this.o.root)) {
+      // A click away from the card puts it away; a click on another number shows that one.
+      const same = hit?.kind === 'note' && hit.key === this.noteKey;
+      this.dismissNote();
+      if (!hit || same) return;
+    }
+    if (!hit) {
+      const edge = t.closest<HTMLElement>('.rd-edge');
+      if (edge) void this.turn(edge.dataset.dir === '-1' ? -1 : 1);
+      return;
+    }
+    this.act(hit, e);
+  }
+
+  private act(hit: Hit, e: MouseEvent): void {
+    switch (hit.kind) {
+      case 'note': {
+        const note = findNote(this.o.book.notes, hit.key, hit.n);
+        if (!note) return;
+        this.noteKey = note.key;
+        showNote(this.o.root, hit.el, note, { x: e.clientX, y: e.clientY });
+        break;
+      }
+      case 'hash':
+      case 'toc':
+        this.goToHeading(hit.h);
+        break;
+      case 'book':
+        this.openBook(hit.id);
+        break;
+      case 'ext':
+        this.win.open(hit.href, '_blank', 'noopener,noreferrer');
+        break;
+      case 'plate':
+        this.openPlate(hit.fig);
+        break;
+    }
+  }
+
+  /** The note, link, contents row or plate at a point of the screen, or null. Looks only at the pages on display. */
+  private hit(x: number, y: number, slop: number): Hit | null {
+    for (const p of [this.right, this.left]) {
+      if (!p || p.el.classList.contains('blank')) continue;
+      const win = p.flow.parentElement;
+      if (!win || distance(win.getBoundingClientRect(), x, y) > slop) continue;
+      const found = this.hitIn(p.flow, x, y, slop);
+      if (found) return found;
+    }
+    return null;
+  }
+
+  private hitIn(flow: HTMLElement, x: number, y: number, slop: number): Hit | null {
+    const near = (e: Element, within: number): number => {
+      let d = Number.POSITIVE_INFINITY;
+      for (const r of Array.from(e.getClientRects())) d = Math.min(d, distance(r, x, y));
+      return d <= within ? d : Number.POSITIVE_INFINITY;
+    };
+    let best: Element | null = null;
+    let bestD = Number.POSITIVE_INFINITY;
+    flow.querySelectorAll('sup.note').forEach((sup) => {
+      const d = near(sup, slop);
+      if (d < bestD) {
+        best = sup;
+        bestD = d;
+      }
+    });
+    if (best) {
+      const sup: Element = best;
+      return { kind: 'note', el: sup, key: sup.getAttribute('data-key'), n: sup.querySelector('a[data-note]')?.getAttribute('data-note') ?? null };
+    }
+    for (const a of Array.from(flow.querySelectorAll('a[href^="#"], a[data-book], a[href^="https:"]'))) {
+      if (near(a, LINK_SLOP) === Number.POSITIVE_INFINITY) continue;
+      const href = a.getAttribute('href') ?? '';
+      if (href.startsWith('#')) return { kind: 'hash', h: href.slice(1) };
+      if (a.hasAttribute('data-book')) return { kind: 'book', id: a.getAttribute('data-book') ?? '' };
+      return { kind: 'ext', href };
+    }
+    for (const li of Array.from(flow.querySelectorAll('.fm-next li[data-book]'))) {
+      if (near(li, 0) !== Number.POSITIVE_INFINITY) return { kind: 'book', id: li.getAttribute('data-book') ?? '' };
+    }
+    for (const li of Array.from(flow.querySelectorAll('.fm.contents li[data-h]'))) {
+      if (near(li, 0) !== Number.POSITIVE_INFINITY) return { kind: 'toc', h: li.getAttribute('data-h') ?? '' };
+    }
+    for (const fig of Array.from(flow.querySelectorAll('figure.plate'))) {
+      if (near(fig, 0) !== Number.POSITIVE_INFINITY) return { kind: 'plate', fig };
+    }
+    return null;
+  }
+
+  /** The hand cursor over what a click would do, for a mouse; touch has no hover. Once per frame. */
+  private hover(x: number, y: number): void {
+    if (this.hoverFrame) return;
+    this.hoverFrame = this.win.requestAnimationFrame(() => {
+      this.hoverFrame = 0;
+      if (this.closed || !this.layout || this.busy) return;
+      this.bookEl.style.cursor = this.hit(x, y, NOTE_SLOP.mouse) ? 'pointer' : '';
+    });
+  }
+
+  /** Turns to the heading of the book that carries `data-h` (the contents and links inside the book). */
+  private goToHeading(h: string): void {
+    if (!this.parts) return;
+    const target = Array.from(this.parts.body.querySelectorAll('[data-h]')).find((e) => e.getAttribute('data-h') === h);
+    if (target) this.goToPage(this.pageOfElement(target));
+  }
+
+  /** «К списку литературы»: turn to the page of the entry and mark it for a moment. */
+  private showRefs(key: string): void {
+    if (!this.parts) return;
+    this.dismissNote();
+    const item = Array.from(this.parts.flow.querySelectorAll('.refs li[data-key]')).find((li) => li.getAttribute('data-key') === key);
+    const page = item ? this.pageOfElement(item) : this.refsStart;
+    if (!Number.isFinite(page)) return;
+    this.goToPage(page);
+    const flows = [this.parts.flow, this.left?.flow, this.right?.flow, this.leaf?.front.flow, this.leaf?.back.flow];
+    const mark = (on: boolean) =>
+      flows.forEach((f) => f?.querySelectorAll('.refs li[data-key]').forEach((li) => li.classList.toggle('rd-flash', on && li.getAttribute('data-key') === key)));
+    mark(true);
+    clearTimeout(this.flashTimer);
+    this.flashTimer = setTimeout(() => mark(false), FLASH_MS);
+  }
+
+  /** Opens a fold-out with a copy of the plate, set free of the page's measuring styles. */
+  private openPlate(fig: Element): void {
+    this.dismissNote();
+    const copy = fig.cloneNode(true) as HTMLElement;
+    copy.classList.remove('fold');
+    copy.removeAttribute('style');
+    copy.querySelectorAll('.rd-unf').forEach((b) => b.remove());
+    copy.querySelectorAll<HTMLElement>('pre').forEach((pre) => {
+      pre.style.fontSize = pre.style.lineHeight = pre.style.maxHeight = '';
+    });
+    openFoldout(this.o.root, copy, () => undefined);
+  }
+
+  /**
+   * Another book (a link in the text, a note or «Дальше»): `location.replace`, so that closing the new book still
+   * returns to the campus instead of reopening this one. The replaced entry loses its state, so the load marker that
+   * `boot.ts` put there is written back.
+   */
+  private openBook(id: string): void {
+    if (id === this.o.entry.id || parseRoute(bookHash(id))?.kind !== 'book') return;
+    const state: unknown = this.win.history.state;
+    this.win.location.replace(bookHash(id));
+    try {
+      if (state !== null && state !== undefined) this.win.history.replaceState(state, '');
+    } catch {
+      // A history that refuses state only costs the back-or-replace choice on close.
     }
   }
 
