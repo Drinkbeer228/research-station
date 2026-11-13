@@ -437,16 +437,19 @@ for (const [w, h] of [[1440, 900], [390, 844]] as const) {
       await expect(counter(page)).not.toHaveText(before!, { timeout: 300 });
     });
 
-    test('after a reload the book opens at the same place in the text', async ({ page }) => {
+    test('after a reload the book opens on the same page', async ({ page }) => {
       await openBook(page);
-      for (let i = 0; i < 3; i++) await turn(page);
+      await reveal(page, 'h2[data-h]'); // past the front matter, so that the place has a chapter
+      for (let i = 0; i < 2; i++) await turn(page);
       const was = await placeOf(page);
+      expect(was.h).toBeDefined();
+      const printed = await counter(page).textContent();
       await page.reload();
       await expect(page.locator('.rd-pg.sr .rd-folio')).toBeAttached();
       await laidOut(page);
-      // The chapter is kept. The exact block is not asserted: the reader keeps the start of the page, and at 390×844 the page
-      // count of one load differs from another (27 or 28, see the report of Task 23), which moves that start by up to a page.
       expect((await placeOf(page)).h).toBe(was.h);
+      expect(await blockOnDisplay(page, was.b)).toBe(true);
+      await expect(counter(page)).toHaveText(printed!); // the same layout, the same page number
     });
   });
 }

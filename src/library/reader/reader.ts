@@ -943,6 +943,7 @@ export class Reader {
     copy.classList.remove('fold');
     copy.removeAttribute('style');
     copy.querySelectorAll('.rd-unf').forEach((b) => b.remove());
+    copy.querySelectorAll<HTMLElement>('img').forEach((img) => (img.style.width = img.style.height = '')); // the page's measured box
     copy.querySelectorAll<HTMLElement>('pre').forEach((pre) => {
       pre.style.fontSize = pre.style.lineHeight = pre.style.maxHeight = '';
     });

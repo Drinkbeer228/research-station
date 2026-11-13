@@ -142,6 +142,18 @@ export function layoutFlow(parts: FlowParts, g: Geometry): Layout {
     body.before(blank);
   }
 
+  // 4b. Images: the box comes from the `width` and `height` attributes, so it is the same before the file has arrived
+  // (a box of 2 px, the borders only) and after (its own size): a picture that arrives late changed the page count.
+  // The size is what the style sheet gives a loaded picture: at most the column wide and 0.6 of a column high.
+  flow.querySelectorAll<HTMLImageElement>('img[width][height]').forEach((img) => {
+    const w0 = Number(img.getAttribute('width'));
+    const h0 = Number(img.getAttribute('height'));
+    if (!(w0 > 0 && h0 > 0)) return;
+    const w = Math.floor(Math.min(g.cw - 2, w0, (g.ch * 0.6 * w0) / h0));
+    img.style.width = px(w);
+    img.style.height = px(Math.round((w * h0) / w0));
+  });
+
   // 5. Plates: the size at which the longest line fits; too small means a folded preview.
   const folded: HTMLElement[] = [];
   body.querySelectorAll<HTMLElement>('figure.plate[data-kind="diagram"]').forEach((fig) => {
