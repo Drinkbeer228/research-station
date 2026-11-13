@@ -21,7 +21,7 @@ import { findNote, hideNote, noteOpen, REFS_EVENT, showNote, tidyNoteSpacing } f
 import { closeFoldout, foldoutOpen, openFoldout } from './foldout';
 import { barButton, MAX_FONT, MIN_FONT, popButton, renderFontPop, renderMorePop } from './bar';
 import { hitAt, NOTE_SLOP, type Hit } from './hit';
-import { tabStops, wrapFocus } from './mobile';
+import { trapTarget } from './mobile';
 import { anchorAt, chooseRestorePage, chosenFontSize, isFinished, NO_BLOCK } from './position';
 
 export interface ReaderOptions { doc: Document; root: HTMLElement; catalog: CatalogFile; entry: CatalogBook; book: BookFile; store: Store; reducedMotion: boolean; onClose(): void }
@@ -632,12 +632,13 @@ export class Reader {
     if (e.defaultPrevented || e.ctrlKey || e.metaKey || e.altKey) return;
     // Space and Enter on a focused button or link press it; they do not turn the page.
     if ((e.key === ' ' || e.key === 'Enter') && (e.target as Element | null)?.closest?.('button, a[href], input, select, textarea, summary')) return;
+    if (e.key === 'Tab') {
+      this.trapFocus(e);
+      return;
+    }
     // A fold-out lies over the whole book: its keys (arrows, space) scroll it, only Esc is the reader's.
     if (e.key !== 'Escape' && foldoutOpen(this.o.root)) return;
     switch (e.key) {
-      case 'Tab':
-        this.trapFocus(e);
-        return;
       case 'Escape':
         // The topmost layer first: a fold-out, then a note card, then the book itself.
         if (closeFoldout(this.o.root)) break;
@@ -677,8 +678,7 @@ export class Reader {
 
   /** Tab stays inside the overlay (spec 12), or inside the fold-out while one lies over it. */
   private trapFocus(e: KeyboardEvent): void {
-    const layer = this.o.root.querySelector<HTMLElement>(':scope > .rd-fold');
-    const next = wrapFocus(tabStops(layer ?? this.o.root), this.doc.activeElement, e.shiftKey);
+    const next = trapTarget(this.o.root, this.doc.activeElement, e.shiftKey);
     if (!next) return;
     e.preventDefault();
     next.focus();
@@ -790,9 +790,11 @@ export class Reader {
       this.onLinear(e, t);
       return;
     }
-    // A link in a window is resolved below by its place on the page, never by the browser.
-    if (t.closest('.rd-win') && t.closest('a')) e.preventDefault();
-    const link = t.closest('a[href^="#"]');
+    // A link in a window is never followed by the browser: `hit` below finds it by its place on the page, so it is
+    // subject to the same checks as any click there (a turn in progress, a selection drag).
+    const inWindow = !!t.closest('.rd-win');
+    if (inWindow && t.closest('a')) e.preventDefault();
+    const link = inWindow ? null : t.closest('a[href^="#"]');
     if (link && this.o.root.contains(link)) {
       // A link to a place in the book never changes `location.hash` (it holds the route): turn to the place instead.
       e.preventDefault();

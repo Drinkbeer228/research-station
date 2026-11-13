@@ -39,7 +39,7 @@ const FOCUSABLE = 'a[href], button, input, select, textarea, summary, [tabindex]
 /** What Tab can reach inside `root` now: not hidden, not inert, not behind `aria-hidden`, not taken out with `tabindex=-1`. */
 export function tabStops(root: Element): HTMLElement[] {
   return Array.from(root.querySelectorAll<HTMLElement>(FOCUSABLE)).filter(
-    (e) => e.tabIndex >= 0 && !(e as HTMLButtonElement).disabled && !e.closest('[hidden], [inert], [aria-hidden="true"]'),
+    (e) => Number(e.getAttribute('tabindex') ?? 0) >= 0 && !(e as HTMLButtonElement).disabled && !e.closest('[hidden], [inert], [aria-hidden="true"]'),
   );
 }
 
@@ -54,4 +54,10 @@ export function wrapFocus<T>(stops: T[], active: unknown, back: boolean): T | nu
   if (back && at === 0) return stops[stops.length - 1];
   if (!back && at === stops.length - 1) return stops[0];
   return null;
+}
+
+/** Where Tab must go in the reader `root`: the fold-out is a layer over everything, so while one is open it holds the focus. */
+export function trapTarget(root: HTMLElement, active: unknown, back: boolean): HTMLElement | null {
+  const layer = root.querySelector<HTMLElement>(':scope > .rd-fold');
+  return wrapFocus(tabStops(layer ?? root), active, back);
 }

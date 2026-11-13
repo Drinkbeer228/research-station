@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { parseHTML } from 'linkedom';
-import { enterReadingMode, READING_VIEWPORT, wrapFocus } from '../reader/mobile';
+import { enterReadingMode, READING_VIEWPORT, trapTarget, wrapFocus } from '../reader/mobile';
 
 const CAMPUS = 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover';
 const page = () => parseHTML(`<html><head><meta name="viewport" content="${CAMPUS}"></head><body></body></html>`).document as unknown as Document;
@@ -56,4 +56,15 @@ test('the focus trap wraps at both ends and pulls in focus from outside', () => 
   assert.equal(wrapFocus(stops, 'root', false), 'a');
   assert.equal(wrapFocus(stops, 'root', true), 'c');
   assert.equal(wrapFocus([], 'root', false), null);
+});
+
+test('with a fold-out open the trap keeps Tab inside the fold-out', () => {
+  const { document } = parseHTML('<div id="r"><button id="bar">bar</button><div class="rd-fold"><button id="a">a</button><button id="b">b</button></div><div aria-hidden="true"><button id="h">h</button></div></div>');
+  const root = document.getElementById('r') as unknown as HTMLElement;
+  const el = (id: string) => document.getElementById(id) as unknown as HTMLElement;
+  assert.equal(trapTarget(root, el('b'), false), el('a'));
+  assert.equal(trapTarget(root, el('a'), true), el('b'));
+  assert.equal(trapTarget(root, el('bar'), false), el('a'));
+  root.querySelector('.rd-fold')!.remove();
+  assert.equal(trapTarget(root, el('bar'), false), el('bar')); // the only stop (the aria-hidden one is skipped): Tab stays on it
 });
