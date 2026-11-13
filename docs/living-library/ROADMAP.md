@@ -72,7 +72,7 @@
 - [ ] **2.3** Слить [elephantology#12](https://github.com/Drinkbeer228/elephantology/pull/12) **merge commit**. Это сборка и публикация каталога плюс правка 35 формул. *Автор.*
   - Готово, когда: `https://drinkbeer228.github.io/elephantology/library/catalog.json` отвечает 200 и «Хобот» открывается на живом сайте: `https://drinkbeer228.github.io/research-station/#/library/anatomy/muscular-hydrostat-and-trunk-biomechanics`.
 - [ ] **2.4** Прогнать e2e в WebKit. Хосту нужна библиотека: `sudo apt-get install libavif16` *(автор)*. Затем `npx playwright test --project=webkit`. Расхождения чинить небольшими правками. *(В контейнерном окружении отсутствует бинарник `/ms-playwright/webkit-2388/pw_run.sh`; полный прогон выполнен в Chromium).*
-- [x] **2.5** Короткая итоговая проверка обеих веток (research-station).
+- [ ] **2.5** Короткая итоговая проверка обеих веток. *Частично: в `9b49d44` исправлены 4 пункта, разбор 74 отложенных замечаний не сделан.*
   - Взять отложенные замечания из [journal-plan-1.md](journal-plan-1.md), строки `minor (deferred)`, и разобрать: «до выкладки», «потом» или «снять».
   - Исправить только пункты «до выкладки», одним PR (`boot.ts`: закрытие офлайн-диалога по `Escape`; `api.ts`: нормализация завершающего слэша `base`; `bookDom.ts` и `reader.ts`: фильтрация `related` до `.slice(0, 4)` и пропуск пустого заголовка «Литература» при `notes.length === 0`).
 - [ ] **2.6** Проверить на настоящем телефоне: iOS Safari и Android Chrome. Свайп, щипок, сноска, вклейка, возврат масштаба после закрытия. *Автор.*
@@ -92,7 +92,7 @@
   - Маршрут `#/library` (без книги) — сама полка.
   - Закрытие возвращает кампус в прежнее состояние: позиция, звук, `input.blockedByModal`.
   - Готово, когда: до любой из 70 книг можно дойти за 2 нажатия или через поиск, на телефоне и на компьютере.
-- [x] **3.3** Блок «Дальше» в конце книги (`src/library/connections.ts`, `src/library/reader/bookDom.ts`).
+- [x] **3.3** Блок «Дальше» в конце книги (`src/library/connections.ts`, `src/library/reader/bookDom.ts`). Ссылки на уроки — 33 пары Приложения A, сверены с `coursesData.ts` Elephantorina; урок открывается по ссылке после [Drinkbeer228/elephantorina#9](https://github.com/Drinkbeer228/elephantorina/pull/9). Строки Keeper Sim — 6 книг, только занятия, которые есть в симуляторе.
   - Ссылки на связанные книги уже приходят в поле `related` книги.
   - Добавить урок Elephantorina и строку Keeper Sim там, где связь реальна (по таблице Приложения A спецификации, без ссылки на Keeper Sim у `veterinary/clinical-welfare-and-protected-contact`).
   - Тон — подсказка, не реклама (`Проверить себя · Elephantorina`, `На практике · Elephant Keeper`).
@@ -124,3 +124,4 @@
 - 2026-11-07…13 — план 1 выполнен: задачи T0–T23, коммиты в research-station#1 и elephantology#9, #10, #12.
 - 2026-11-13 — создана эта дорожная карта.
 - 2026-11-13 — выполнены шаги 2.5 (правки `minor (deferred)` до выкладки в `research-station`), 3.2 (кнопка «Библиотека» в карточке Elephantology и оверлей книжной полки `#/library` с поиском по названию, короткому названию и заголовкам `h2`, корешками по дисциплинам и справочниками в `#4F5552`), 3.3 (ссылки на уроки Elephantorina и практику Keeper Sim в блоке «Дальше») и 3.4 (живая деталь на полке: лампа и спящий кот на стопке книг с учётом `prefers-reduced-motion`).
+- 2026-11-14 — в 3.3 выдуманные id уроков Elephantorina (`track-anatomy/les-trunk` и т. п.) заменены настоящими из Приложения A; Elephantorina научилась открывать урок по `?course=&lesson=` (#9). 2.5 возвращён в «не сделано».
