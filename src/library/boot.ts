@@ -28,14 +28,23 @@ function offline(): void {
   const blocked = input?.blockedByModal ?? false;
   if (input) input.blockedByModal = true;
   let open = true;
+  const onKey = (e: KeyboardEvent) => {
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      dismiss();
+      leave();
+    }
+  };
   const dismiss = () => {
     if (!open) return;
     open = false;
     d.remove();
     removeEventListener('hashchange', dismiss);
+    removeEventListener('keydown', onKey, true);
     if (input) input.blockedByModal = blocked;
   };
   addEventListener('hashchange', dismiss);
+  addEventListener('keydown', onKey, true);
   retry.onclick = () => {
     dismiss();
     route();
@@ -52,10 +61,12 @@ function route(): void {
   // Every route change supersedes the previous one, so a chunk that resolves late opens nothing stale.
   const n = ++seq;
   const r = parseRoute(location.hash);
-  if (r?.kind !== 'book') return;
+  if (!r) return;
   import('./reader/open').then(
     (m) => {
-      if (n === seq) return m.openBookRoute(r.id);
+      if (n !== seq) return;
+      if (r.kind === 'book') return m.openBookRoute(r.id);
+      return m.openHallRoute(r.kind === 'catalog' ? r.q : undefined);
     },
     () => {
       if (n === seq) offline();

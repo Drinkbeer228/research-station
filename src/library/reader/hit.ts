@@ -64,6 +64,10 @@ export function hitIn(flow: HTMLElement, x: number, y: number, slop: number): Hi
   for (const li of Array.from(flow.querySelectorAll('.fm-next li[data-book]'))) {
     if (near(li, 0) !== Number.POSITIVE_INFINITY) return { kind: 'book', id: li.getAttribute('data-book') ?? '' };
   }
+  for (const li of Array.from(flow.querySelectorAll('.fm-next li.fm-next-ext'))) {
+    const a = li.querySelector('a[href^="https:"]');
+    if (a && near(li, 0) !== Number.POSITIVE_INFINITY) return { kind: 'ext', href: a.getAttribute('href') ?? '' };
+  }
   for (const li of Array.from(flow.querySelectorAll('.fm.contents li[data-h]'))) {
     if (near(li, 0) !== Number.POSITIVE_INFINITY) return { kind: 'toc', h: li.getAttribute('data-h') ?? '' };
   }

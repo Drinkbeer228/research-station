@@ -670,4 +670,77 @@ test.describe('scenarios', () => {
       expect(new URL(page.url()).hash).toBe(`#/library/${BOOK}`);
     });
   }
+
+  test('the «Библиотека» button in the Elephantology card opens the bookshelf overlay (#/library), filters by h2 heading, opens a book, and restores campus state on close', async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await serveLibrary(page);
+    await page.goto('./');
+    await page.waitForFunction(() => '__ERS_GAME__' in window);
+
+    // Open Elephantology building modal on the campus and check the «Библиотека» button
+    const beforeState = await page.evaluate(() => {
+      const g = (window as unknown as { __ERS_GAME__: { player: { x: number; y: number }; ui: { openBuildingModal: (b: unknown) => void }; storage: { state: { muted: boolean } } } }).__ERS_GAME__;
+      g.ui.openBuildingModal({
+        id: 'elephantology',
+        theme: 'sage',
+        kicker: 'Научный исследовательский центр',
+        displayTitle: 'Elephantology',
+        description: 'Академическая база знаний',
+        siteUrl: 'https://drinkbeer228.github.io/elephantology/',
+        githubUrl: 'https://github.com/Drinkbeer228/elephantology',
+      });
+      return { x: g.player.x, y: g.player.y, muted: g.storage.state.muted };
+    });
+
+    const libBtn = page.locator('#building-link-library');
+    await expect(libBtn).toBeVisible();
+    await expect(libBtn).toHaveText(/Библиотека/);
+    await libBtn.click();
+
+    // Bookshelf overlay opens at #/library
+    await expect(page.locator('.ers-reader.ers-shelf-mode')).toBeVisible();
+    expect(new URL(page.url()).hash).toBe('#/library');
+    await expect(page.locator('.sh-case')).toHaveCount(10);
+    await expect(page.locator('.sh-spine')).toHaveCount(69);
+    await expect(page.locator('.sh-ref-book')).toHaveCount(2);
+    await expect(page.locator('.sh-lamp')).toBeAttached();
+    await expect(page.locator('.sh-pile .rd-cat')).toBeAttached();
+
+    // Filter by h2 heading via top search input
+    const search = page.locator('.sh-search-input');
+    await search.fill('Гидродинамика');
+    await expect(page.locator('.sh-result-card')).toHaveCount(1);
+    await expect(page.locator('.sh-chapter-chip').first()).toContainText('Гидродинамика');
+
+    // Clear search and click the trunk book spine to open the book
+    await page.keyboard.press('Escape');
+    await expect(page.locator('.sh-spine')).toHaveCount(69);
+    await page.locator(`.sh-spine[data-book="${BOOK}"]`).click();
+
+    await expect(page.locator('.rd-pg.sr .rd-folio')).toBeAttached();
+    await laidOut(page);
+    expect(new URL(page.url()).hash).toBe(`#/library/${BOOK}`);
+
+    // Verify «Дальше» on the end page includes Elephantorina and Elephant Keeper links
+    await page.keyboard.press('End');
+    await settle(page);
+    await expect(page.locator('.rd-measure .fm-next li.fm-next-ext a[data-project="elephantorina"]')).toHaveAttribute(
+      'href',
+      'https://drinkbeer228.github.io/elephantorina/?course=track-anatomy&lesson=les-trunk',
+    );
+    await expect(page.locator('.rd-measure .fm-next li.fm-next-ext a[data-project="keeper"]')).toHaveAttribute(
+      'href',
+      'https://drinkbeer228.github.io/Elephant-keeper-/',
+    );
+
+    // Close and verify campus state is restored
+    await page.keyboard.press('Escape');
+    await expect(page.locator('.ers-reader')).toHaveCount(0);
+    expect(new URL(page.url()).hash).toBe('');
+    const afterState = await page.evaluate(() => {
+      const g = (window as unknown as { __ERS_GAME__: { player: { x: number; y: number }; input: { blockedByModal: boolean }; ui: { activeModal: string | null }; storage: { state: { muted: boolean } } } }).__ERS_GAME__;
+      return { x: g.player.x, y: g.player.y, blocked: g.input.blockedByModal, modal: g.ui.activeModal, muted: g.storage.state.muted };
+    });
+    expect(afterState).toEqual({ ...beforeState, blocked: false, modal: null });
+  });
 });

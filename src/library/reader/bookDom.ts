@@ -5,6 +5,7 @@
  */
 import type { BookFile, BookNote, CatalogBook, CatalogFile, Contributor } from '../types';
 import type { BookMemory } from '../store';
+import { getBookConnections } from '../connections';
 import { sanitizeBookHtml } from './sanitize';
 import { hyphenateTree } from './hyphenate';
 
@@ -135,6 +136,7 @@ function numeric(n: string): number {
 
 function refsSection(doc: Document, notes: BookNote[]): HTMLElement {
   const sec = el(doc, 'section', 'refs');
+  if (!notes.length) return sec;
   sec.append(el(doc, 'h2', 'fm-heading', 'Литература'));
   const ol = el(doc, 'ol');
   const sorted = [...notes].sort((a, b) => numeric(a.n) - numeric(b.n) || a.n.localeCompare(b.n));
@@ -190,14 +192,32 @@ function endPage(doc: Document, catalog: CatalogFile, entry: CatalogBook, memory
     sec.append(p);
   }
 
-  const next = entry.related.slice(0, 4).map((id) => catalog.books.find((b) => b.id === id)).filter((b): b is CatalogBook => !!b);
-  if (next.length) {
+  const next = entry.related
+    .map((id) => catalog.books.find((b) => b.id === id))
+    .filter((b): b is CatalogBook => !!b)
+    .slice(0, 4);
+  const conn = getBookConnections(entry.id);
+  if (next.length || conn?.elephantorina || conn?.keeper) {
     const box = el(doc, 'div', 'fm-next');
     box.append(el(doc, 'h3', undefined, 'Дальше'));
     const ul = el(doc, 'ul');
     for (const b of next) {
       const li = el(doc, 'li', undefined, b.title);
       li.setAttribute('data-book', b.id);
+      ul.append(li);
+    }
+    if (conn?.elephantorina) {
+      const li = el(doc, 'li', 'fm-next-ext');
+      const a = linkTo(doc, conn.elephantorina.url, `Проверить себя · Elephantorina — ${conn.elephantorina.label}`);
+      a.setAttribute('data-project', 'elephantorina');
+      li.append(a);
+      ul.append(li);
+    }
+    if (conn?.keeper) {
+      const li = el(doc, 'li', 'fm-next-ext');
+      const a = linkTo(doc, conn.keeper.url, `На практике · Elephant Keeper — ${conn.keeper.label}`);
+      a.setAttribute('data-project', 'keeper');
+      li.append(a);
       ul.append(li);
     }
     box.append(ul);

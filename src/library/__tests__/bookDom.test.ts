@@ -152,3 +152,30 @@ test('shows verso metadata in the site\'s Russian wording, unknown values as wri
   assert.ok(unknown.includes('Основания: рецензируемые журналы, archive'));
   assert.ok(unknown.includes('Сложность: pro'));
 });
+
+test('omits the Литература heading when a book has no notes', () => {
+  const p = build({}, { notes: [] });
+  assert.equal(p.flow.querySelector('.refs h2'), null);
+});
+
+test('filters unknown related book ids before taking up to 4 related books and includes Elephantorina and Keeper links', () => {
+  const p = build({
+    id: 'anatomy/muscular-hydrostat-and-trunk-biomechanics',
+    related: [
+      'anatomy/non-existent-1',
+      'anatomy/non-existent-2',
+      'anatomy/cardiovascular-system-and-hemodynamics',
+      'anatomy/digestive-system-macroanatomy-and-vascularization',
+      'anatomy/integumentary-system-and-skin-morphology',
+      'anatomy/respiratory-system-and-vocal-tract',
+    ],
+  });
+  const bookItems = [...p.end.querySelectorAll('.fm-next li[data-book]')];
+  assert.equal(bookItems.length, 4);
+  const extLinks = [...p.end.querySelectorAll('.fm-next li.fm-next-ext a')];
+  assert.equal(extLinks.length, 2);
+  assert.match(extLinks[0].getAttribute('href')!, /^https:\/\/drinkbeer228\.github\.io\/elephantorina\/\?course=track-anatomy&lesson=les-trunk$/);
+  assert.match(extLinks[0].textContent!, /Проверить себя · Elephantorina/);
+  assert.equal(extLinks[1].getAttribute('href'), 'https://drinkbeer228.github.io/Elephant-keeper-/');
+  assert.match(extLinks[1].textContent!, /На практике · Elephant Keeper/);
+});

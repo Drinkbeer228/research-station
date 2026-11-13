@@ -51,9 +51,11 @@ function parseBook(x: unknown, entry: CatalogBook): BookFile {
   return x as unknown as BookFile;
 }
 
+const withSlash = (b: string): string => (b.endsWith('/') ? b : `${b}/`);
+
 /** Loads the catalog and caches it. If loading fails with a network error and a cached copy exists, returns that copy with `stale: true`. */
 export async function loadCatalog(deps: { fetch: typeof fetch; store: Store; base?: string }): Promise<CatalogResult> {
-  const base = deps.base ?? LIBRARY_BASE;
+  const base = withSlash(deps.base ?? LIBRARY_BASE);
   try {
     const catalog = parseCatalog(await getJson(deps.fetch, base + 'catalog.json', false));
     deps.store.write((s) => {
@@ -69,6 +71,6 @@ export async function loadCatalog(deps: { fetch: typeof fetch; store: Store; bas
 }
 
 export async function loadBook(entry: CatalogBook, deps: { fetch: typeof fetch; base?: string }): Promise<BookFile> {
-  const base = deps.base ?? LIBRARY_BASE;
+  const base = withSlash(deps.base ?? LIBRARY_BASE);
   return parseBook(await getJson(deps.fetch, base + entry.contentUrl, true), entry);
 }

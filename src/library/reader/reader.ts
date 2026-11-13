@@ -43,15 +43,15 @@ const FLASH_MS = 2200;
 const STORE_DEFAULT_FONT = 17;
 
 /** Cover colours: the discipline colours of the hall draft (`prototype/preview.template.html`, `DISC`). */
-const COVER_COLORS: Record<string, string> = {
+export const COVER_COLORS: Record<string, string> = {
   taxonomy: '#6B7D57', anatomy: '#C86D51', ethogram: '#A96B3B', cognition: '#4F7F78', veterinary: '#2E5A44',
   ecology: '#7E9A5E', conservation: '#7A5C3E', culture: '#B8893B', paleontology: '#BFA468', genomics: '#8C5A6E',
 };
 /** The reference books are not on a shelf and have no discipline colour; they take the station ink. */
-const REFERENCE_COLOR = '#4F5552';
+export const REFERENCE_COLOR = '#4F5552';
 
-const LAMP_SVG = '<circle cx="76" cy="76" r="60" fill="#2E5A44" stroke="#2C302E" stroke-width="3"/><circle cx="76" cy="76" r="45" fill="#3a6f55"/><circle cx="62" cy="60" r="20" fill="rgba(255,255,255,.12)"/><circle cx="76" cy="76" r="11" fill="#C9A15A" stroke="#2C302E" stroke-width="2.5"/>';
-const PILE_SVG = '<g stroke="#2C302E" stroke-width="2"><rect x="10" y="20" width="108" height="74" rx="4" fill="#2E5A44" transform="rotate(-5 64 57)"/><rect x="14" y="20" width="100" height="70" rx="4" fill="#C86D51" transform="rotate(4 64 55)"/><rect x="20" y="24" width="88" height="62" rx="4" fill="#E4CF9C" transform="rotate(-2 64 55)"/></g>'
+export const LAMP_SVG = '<circle cx="76" cy="76" r="60" fill="#2E5A44" stroke="#2C302E" stroke-width="3"/><circle cx="76" cy="76" r="45" fill="#3a6f55"/><circle cx="62" cy="60" r="20" fill="rgba(255,255,255,.12)"/><circle cx="76" cy="76" r="11" fill="#C9A15A" stroke="#2C302E" stroke-width="2.5"/>';
+export const PILE_SVG = '<g stroke="#2C302E" stroke-width="2"><rect x="10" y="20" width="108" height="74" rx="4" fill="#2E5A44" transform="rotate(-5 64 57)"/><rect x="14" y="20" width="100" height="70" rx="4" fill="#C86D51" transform="rotate(4 64 55)"/><rect x="20" y="24" width="88" height="62" rx="4" fill="#E4CF9C" transform="rotate(-2 64 55)"/></g>'
   + '<g class="rd-cat"><ellipse cx="62" cy="58" rx="31" ry="25" fill="#1F2324" stroke="#121415" stroke-width="2.4"/><path d="M36 74c10 16 42 16 56 2" fill="none" stroke="#181A1B" stroke-width="7.5" stroke-linecap="round"/><circle cx="91" cy="76" r="3.6" fill="#F7F5F0"/><circle cx="76" cy="48" r="14" fill="#232729" stroke="#121415" stroke-width="2"/><path d="M66 38l-2-13 12 7zM86 38l3-13-12 7z" fill="#161819" stroke="#121415" stroke-width="1.6"/><ellipse cx="80" cy="56" rx="6.5" ry="5" fill="#F7F5F0"/><circle cx="83" cy="54" r="1.5" fill="#D98A7C"/><path d="M66 48q3 2 6 0M78 44q3 2 6 0" fill="none" stroke="#E8E4DA" stroke-width="1.5" stroke-linecap="round"/></g>';
 
 type Pop = 'bm' | 'fs' | 'more';
@@ -283,7 +283,7 @@ export class Reader {
     this.barMode(g);
     this.layout = layoutFlow(this.parts, g);
     const refs = this.parts.flow.querySelector(':scope > section.refs');
-    this.refsStart = refs ? this.pageOfElement(refs) : Number.POSITIVE_INFINITY;
+    this.refsStart = refs && refs.children.length ? this.pageOfElement(refs) : Number.POSITIVE_INFINITY;
     this.fillContents(this.layout);
     this.assemble();
     if (!this.placed) {
@@ -1322,7 +1322,7 @@ function sameGeometry(a: Geometry, b: Geometry): boolean {
 }
 
 /** FNV-1a of a string, as in the hall draft: the small colour spread between books of one discipline. */
-function hash(s: string): number {
+export function hash(s: string): number {
   let h = 2166136261;
   for (const c of s) {
     h ^= c.codePointAt(0)!;
@@ -1331,7 +1331,7 @@ function hash(s: string): number {
   return h >>> 0;
 }
 
-function shade(hex: string, amount: number): string {
+export function shade(hex: string, amount: number): string {
   const n = parseInt(hex.slice(1), 16);
   const ch = (v: number) => Math.max(0, Math.min(255, Math.round(v + amount))).toString(16).padStart(2, '0');
   return `#${ch(n >> 16)}${ch((n >> 8) & 255)}${ch(n & 255)}`;

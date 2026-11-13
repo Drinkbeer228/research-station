@@ -5,16 +5,29 @@
 import './fontStyles';
 import './reader.css';
 import { LibraryError, loadBook, loadCatalog } from '../api';
-import { bookHash } from '../router';
+import { bookHash, parseRoute } from '../router';
 import { createStore, type Store } from '../store';
 import type { CatalogBook } from '../types';
 import { enterReadingMode } from './mobile';
+import { NO_BLOCK } from './position';
 import { Reader } from './reader';
+import { Shelf } from './shelf';
 
 const SITE = 'https://drinkbeer228.github.io/elephantology/';
 
 interface GameInput { blockedByModal: boolean; clearAllInputs?: () => void }
-interface Session { id: string; root: HTMLElement; reader: Reader | null; entry: CatalogBook | null; site: string; restore: () => void; returnTo: HTMLElement | null }
+interface GameUi { activeModal?: string | null; closeAllModals?: (playSound?: boolean) => void }
+interface Session {
+  kind: 'book' | 'hall';
+  id: string;
+  root: HTMLElement;
+  reader: Reader | null;
+  shelf: Shelf | null;
+  entry: CatalogBook | null;
+  site: string;
+  restore: () => void;
+  returnTo: HTMLElement | null;
+}
 
 let session: Session | null = null;
 /** Bumped by every load and every close, so a load that resolves late for an old route does nothing. */
@@ -35,14 +48,19 @@ function libraryStore(): Store {
 }
 
 const gameInput = (): GameInput | undefined => (window as unknown as { __ERS_GAME__?: { input?: GameInput } }).__ERS_GAME__?.input;
+const gameUi = (): GameUi | undefined => (window as unknown as { __ERS_GAME__?: { ui?: GameUi } }).__ERS_GAME__?.ui;
 
 /**
  * While the overlay is open (spec 5.2): reading mode (`mobile.ts`: the root class that lifts the campus `touch-action`
- * and the zoomable viewport), the campus input blocked, and Esc for the overlay before the reader exists. Returns the
- * restorer.
+ * and the zoomable viewport), the campus input blocked, and Esc for the overlay before the reader/shelf exists. Returns
+ * the restorer.
  */
 function enterOverlay(root: HTMLElement): () => void {
   const leaveReading = enterReadingMode(document);
+  const ui = gameUi();
+  if (ui?.activeModal) {
+    ui.closeAllModals?.(false);
+  }
   const input = gameInput();
   const blocked = input?.blockedByModal ?? false;
   if (input) {
@@ -50,8 +68,8 @@ function enterOverlay(root: HTMLElement): () => void {
     input.clearAllInputs?.();
   }
   const onKey = (e: KeyboardEvent) => {
-    // The reader handles its own keys; while loading or on an error card, Esc closes the overlay.
-    if (e.key === 'Escape' && session && !session.reader) {
+    // The reader and shelf handle their own keys; while loading or on an error card, Esc closes the overlay.
+    if (e.key === 'Escape' && session && !session.reader && !session.shelf) {
       e.preventDefault();
       e.stopPropagation();
       leave();
@@ -66,15 +84,16 @@ function enterOverlay(root: HTMLElement): () => void {
   };
 }
 
-/** Closes the overlay without touching the history (the route has already changed, or another book replaces it). */
-function end(): void {
+/** Closes the overlay without touching the history (the route has already changed, or another view replaces it). */
+function end(restoreFocus = true): void {
   seq++;
   const s = session;
   session = null;
   if (!s) return;
   s.reader?.close();
+  s.shelf?.close();
   s.restore();
-  giveFocusBack(s.returnTo);
+  if (restoreFocus) giveFocusBack(s.returnTo);
 }
 
 /**
@@ -87,11 +106,11 @@ function giveFocusBack(to: HTMLElement | null): void {
 }
 
 /**
- * Closes the overlay at the reader's request and removes the hash: back through the history if the book was opened
+ * Closes the overlay at the reader's or shelf's request and removes the hash: back through the history if opened
  * by a navigation inside the page, otherwise in place. `boot.ts` marks the history entry the page was loaded on.
  */
 function leave(): void {
-  end();
+  end(true);
   const state: unknown = history.state;
   const loadedHere = typeof state === 'object' && state !== null && (state as { ersLoad?: number }).ersLoad === performance.timeOrigin;
   if (loadedHere) history.replaceState(state, '', location.pathname + location.search);
@@ -99,14 +118,90 @@ function leave(): void {
 }
 
 addEventListener('hashchange', () => {
-  if (session && location.hash !== bookHash(session.id)) end();
+  if (!session) return;
+  const r = parseRoute(location.hash);
+  if (!r) {
+    end(true);
+  }
 });
 
-export async function openBookRoute(id: string): Promise<void> {
-  if (session?.id === id) return;
-  end();
+function captureReturnTo(): HTMLElement | null {
+  if (session?.returnTo && session.returnTo.isConnected) return session.returnTo;
   const active = document.activeElement;
-  const returnTo = active instanceof HTMLElement && active !== document.body && active !== document.documentElement ? active : null;
+  return active instanceof HTMLElement && active !== document.body && active !== document.documentElement && !active.closest('.ers-reader') ? active : null;
+}
+
+export async function openHallRoute(q?: string): Promise<void> {
+  if (session?.kind === 'hall' && session.shelf) {
+    session.shelf.setQuery(q ?? '');
+    return;
+  }
+  const returnTo = captureReturnTo();
+  end(false);
+  const root = document.createElement('div');
+  root.className = 'ers-reader ers-shelf-mode';
+  root.setAttribute('role', 'dialog');
+  root.setAttribute('aria-modal', 'true');
+  root.setAttribute('aria-label', 'Библиотека Слонологии');
+  root.tabIndex = -1;
+  document.body.append(root);
+  session = { kind: 'hall', id: '', root, reader: null, shelf: null, entry: null, site: SITE, restore: enterOverlay(root), returnTo };
+  root.focus();
+  await loadHall(session, q);
+}
+
+async function loadHall(s: Session, q?: string): Promise<void> {
+  const my = ++seq;
+  s.shelf = null;
+  s.root.replaceChildren(el('div', 'rd-desk'), el('p', 'rd-loading', 'Открываю библиотеку…'));
+  const fetchFn: typeof fetch = (input, init) => fetch(input, init);
+  try {
+    const { catalog } = await loadCatalog({ fetch: fetchFn, store: libraryStore() });
+    if (my !== seq) return;
+    s.site = catalog.source?.site || SITE;
+    const shelf = new Shelf({
+      doc: document,
+      root: s.root,
+      catalog,
+      store: libraryStore(),
+      initialQuery: q,
+      onClose: leave,
+      onOpenBook: (id, heading) => {
+        if (heading) {
+          libraryStore().write((st) => {
+            const cur = st.books[id];
+            st.books[id] = {
+              hash: cur?.hash ?? '',
+              at: { b: NO_BLOCK, o: 0, h: heading },
+              bookmarks: cur?.bookmarks ?? [],
+              opened: cur?.opened ?? [],
+              finished: cur?.finished ?? [],
+            };
+          });
+        }
+        const state: unknown = window.history.state;
+        window.location.replace(bookHash(id));
+        try {
+          if (state !== null && state !== undefined) window.history.replaceState(state, '');
+        } catch {
+          // Ignore if history refuses state.
+        }
+      },
+    });
+    s.shelf = shelf;
+    shelf.open();
+  } catch (e) {
+    if (my !== seq) return;
+    s.shelf?.close();
+    s.shelf = null;
+    showError(s, e, () => void loadHall(s, q));
+  }
+}
+
+export async function openBookRoute(id: string): Promise<void> {
+  if (session?.kind === 'book' && session.id === id) return;
+  const returnTo = captureReturnTo();
+  end(false);
   const root = document.createElement('div');
   root.className = 'ers-reader';
   root.setAttribute('role', 'dialog');
@@ -114,12 +209,12 @@ export async function openBookRoute(id: string): Promise<void> {
   root.setAttribute('aria-label', 'Книга');
   root.tabIndex = -1;
   document.body.append(root);
-  session = { id, root, reader: null, entry: null, site: SITE, restore: enterOverlay(root), returnTo };
+  session = { kind: 'book', id, root, reader: null, shelf: null, entry: null, site: SITE, restore: enterOverlay(root), returnTo };
   root.focus();
-  await load(session);
+  await loadBookSession(session);
 }
 
-async function load(s: Session): Promise<void> {
+async function loadBookSession(s: Session): Promise<void> {
   const my = ++seq;
   s.reader = null;
   s.root.replaceChildren(el('div', 'rd-desk'), el('p', 'rd-loading', 'Открываю книгу…'));
@@ -148,7 +243,7 @@ async function load(s: Session): Promise<void> {
     if (my !== seq) return;
     s.reader?.close();
     s.reader = null;
-    showError(s, e);
+    showError(s, e, () => void loadBookSession(s));
   }
 }
 
@@ -160,7 +255,7 @@ function el(tag: string, cls: string, text?: string): HTMLElement {
 }
 
 /** Spec 11: «Книга не найдена» with the site's catalog; «Книга не загрузилась» with a retry; an unknown schema. */
-function showError(s: Session, e: unknown): void {
+function showError(s: Session, e: unknown, onRetry: () => void): void {
   const kind = e instanceof LibraryError ? e.kind : 'network';
   if (!(e instanceof LibraryError)) console.error(e);
   const title = kind === 'notfound' ? 'Книга не найдена' : kind === 'schema' ? 'Неизвестная схема данных' : 'Книга не загрузилась';
@@ -187,7 +282,7 @@ function showError(s: Session, e: unknown): void {
   if (kind === 'notfound') {
     actions.append(link('Каталог Elephantology', s.site));
   } else {
-    if (kind === 'network') actions.append(button('Повторить', () => void load(s)));
+    if (kind === 'network') actions.append(button('Повторить', onRetry));
     actions.append(link('Открыть на сайте', s.entry?.siteUrl || s.site));
   }
   actions.append(button('Закрыть', leave));

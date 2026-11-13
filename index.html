@@ -849,6 +849,14 @@
           <span id="building-link-site-label">Открыть сайт</span>
         </a>
 
+        <a id="building-link-library" href="#/library" class="btn-secondary">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+            <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+          </svg>
+          <span>Библиотека</span>
+        </a>
+
         <a id="building-link-github" href="https://github.com/Drinkbeer228/elephantology" target="_blank" rel="noopener noreferrer" class="btn-secondary">
           <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/>
@@ -887,6 +895,7 @@
           </p>
           <div class="project-list-links">
             <a href="https://drinkbeer228.github.io/elephantology/" target="_blank" rel="noopener noreferrer" class="btn-primary">Открыть сайт</a>
+            <a href="#/library" class="btn-secondary" data-open-library>Библиотека</a>
             <a href="https://github.com/Drinkbeer228/elephantology" target="_blank" rel="noopener noreferrer" class="btn-secondary">GitHub</a>
             <button type="button" class="btn-ghost" data-walk-to="elephantology">Подойти ко входу</button>
           </div>
@@ -4063,6 +4072,7 @@
           this.buildingModalDesc = document.getElementById('building-modal-desc');
           this.buildingLinkSite = document.getElementById('building-link-site');
           this.buildingLinkSiteLabel = document.getElementById('building-link-site-label');
+          this.buildingLinkLibrary = document.getElementById('building-link-library');
           this.buildingLinkGithub = document.getElementById('building-link-github');
 
           this.modalProjectsBackdrop = document.getElementById('modal-projects-backdrop');
@@ -4174,6 +4184,13 @@
             });
           });
 
+          // Library shelf buttons inside Elephantology building/project cards
+          document.querySelectorAll('#building-link-library, [data-open-library]').forEach((el) => {
+            el.addEventListener('click', () => {
+              this.closeAllModals(false);
+            });
+          });
+
           // Settings Sliders
           this.sliderAmbient.addEventListener('input', () => {
             this.audio.initOnGesture();
@@ -4249,6 +4266,9 @@
           this.buildingLinkSite.href = b.siteUrl;
           if (this.buildingLinkSiteLabel) {
             this.buildingLinkSiteLabel.textContent = b.siteLabel || 'Открыть сайт';
+          }
+          if (this.buildingLinkLibrary) {
+            this.buildingLinkLibrary.style.display = b.id === 'elephantology' ? '' : 'none';
           }
           this.buildingLinkGithub.href = b.githubUrl;
 
