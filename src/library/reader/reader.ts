@@ -8,7 +8,7 @@
  * own elements (notes, plates and links of spec 8.7 and 8.8; Task 20).
  */
 import type { BookFile, CatalogBook, CatalogFile } from '../types';
-import type { Store } from '../store';
+import type { Anchor, BookMemory, LibraryState, Store } from '../store';
 import { buildFlow, type FlowParts } from './bookDom';
 import { computeGeometry, defaultFontSize, layoutFlow, pageIndex, type Geometry, type Layout } from './paginate';
 import { loadBookFonts } from './fonts';
@@ -17,6 +17,7 @@ import { runTurn, TURN_EASING } from './turn';
 import { bookHash, parseRoute } from '../router';
 import { findNote, hideNote, noteOpen, REFS_EVENT, showNote, tidyNoteSpacing } from './notes';
 import { closeFoldout, foldoutOpen, openFoldout } from './foldout';
+import { anchorAt, chooseRestorePage, isFinished, NO_BLOCK } from './position';
 
 export interface ReaderOptions { doc: Document; root: HTMLElement; catalog: CatalogFile; entry: CatalogBook; book: BookFile; store: Store; reducedMotion: boolean; onClose(): void }
 
@@ -36,6 +37,10 @@ const CLICK_QUIET_MS = 400;
 const NOTE_SLOP: Record<string, number> = { mouse: 3, pen: 8, touch: 14 };
 const LINK_SLOP = 2;
 const FLASH_MS = 2200;
+const MIN_FONT = 15;
+const MAX_FONT = 22;
+/** The store's size when nothing was chosen (`store.ts`): it cannot tell that from a chosen 17, so 17 counts as «not chosen». */
+const STORE_DEFAULT_FONT = 17;
 
 type Hit =
   | { kind: 'note'; el: Element; key: string | null; n: string | null }
@@ -62,6 +67,15 @@ const LAMP_SVG = '<circle cx="76" cy="76" r="60" fill="#2E5A44" stroke="#2C302E"
 const PILE_SVG = '<g stroke="#2C302E" stroke-width="2"><rect x="10" y="20" width="108" height="74" rx="4" fill="#2E5A44" transform="rotate(-5 64 57)"/><rect x="14" y="20" width="100" height="70" rx="4" fill="#C86D51" transform="rotate(4 64 55)"/><rect x="20" y="24" width="88" height="62" rx="4" fill="#E4CF9C" transform="rotate(-2 64 55)"/></g>'
   + '<g class="rd-cat"><ellipse cx="62" cy="58" rx="31" ry="25" fill="#1F2324" stroke="#121415" stroke-width="2.4"/><path d="M36 74c10 16 42 16 56 2" fill="none" stroke="#181A1B" stroke-width="7.5" stroke-linecap="round"/><circle cx="91" cy="76" r="3.6" fill="#F7F5F0"/><circle cx="76" cy="48" r="14" fill="#232729" stroke="#121415" stroke-width="2"/><path d="M66 38l-2-13 12 7zM86 38l3-13-12 7z" fill="#161819" stroke="#121415" stroke-width="1.6"/><ellipse cx="80" cy="56" rx="6.5" ry="5" fill="#F7F5F0"/><circle cx="83" cy="54" r="1.5" fill="#D98A7C"/><path d="M66 48q3 2 6 0M78 44q3 2 6 0" fill="none" stroke="#E8E4DA" stroke-width="1.5" stroke-linecap="round"/></g>';
 
+/** Bar icons (shown instead of the words on a phone, spec 8.9). 20 px, stroke only. */
+const ICONS: Record<string, string> = {
+  close: '<path d="M5 5l10 10M15 5L5 15"/>',
+  toc: '<path d="M4 5h12M4 10h12M4 15h8"/>',
+  bookmark: '<path d="M6 3h8v14l-4-3.5L6 17z"/>',
+  lamp: '<path d="M10 2.5a5 5 0 0 0-3 9v2h6v-2a5 5 0 0 0-3-9zM7.5 16.5h5"/>',
+};
+
+type Pop = 'bm' | 'fs';
 type Side = 'l' | 'r';
 interface Page { el: HTMLElement; flow: HTMLElement; head: HTMLElement; folio: HTMLElement; shade: HTMLElement }
 interface Leaf { el: HTMLElement; front: Page; back: Page }
@@ -105,6 +119,20 @@ export class Reader {
   /** Type of the last pointer to go down: a browser may deliver `click` as a plain MouseEvent that lacks it. */
   private lastPointer = 'mouse';
   private fontsChanged = false;
+  /** The size the reader chose with «Aa»; null while the size follows the width of the window. */
+  private explicitFs: number | null = null;
+  /** The first layout has chosen the page to open on; before that nothing may be saved over the stored place. */
+  private placed = false;
+  /** The place of the reader (spec 8.10): set when a page is shown by the reader, kept across a relayout (`holding`). */
+  private place: Anchor | null = null;
+  private holding = false;
+  private finishedDay = '';
+  private pop: Pop | null = null;
+  private popEl: HTMLElement | null = null;
+  private count: HTMLElement | null = null;
+  private bmBtn: HTMLButtonElement | null = null;
+  private lampBtn: HTMLButtonElement | null = null;
+  private opener: HTMLElement | null = null;
   private readonly cleanup: Array<() => void> = [];
 
   constructor(o: ReaderOptions) {
@@ -142,14 +170,25 @@ export class Reader {
     const wrap = this.el('div', 'rd-wrap');
     wrap.append(this.bookEl);
     const bar = this.el('div', 'rd-bar');
-    const close = this.el('button', 'rd-btn', 'Закрыть');
-    close.setAttribute('type', 'button');
-    close.addEventListener('click', () => this.o.onClose());
-    bar.append(close);
+    const close = this.barButton('Закрыть', 'close', () => this.o.onClose());
+    const toc = this.barButton('Оглавление', 'toc', () => this.goToContents());
+    this.bmBtn = this.barButton('Закладка', 'bookmark', (b) => this.togglePop('bm', b));
+    const aa = this.barButton('Aa', null, (b) => this.togglePop('fs', b));
+    aa.setAttribute('aria-label', 'Aa, размер шрифта');
+    this.lampBtn = this.barButton('Лампа', 'lamp', () => this.toggleLamp());
+    this.bmBtn.setAttribute('aria-haspopup', 'true');
+    aa.setAttribute('aria-haspopup', 'true');
+    this.count = this.el('div', 'rd-count');
+    bar.append(close, this.el('span', 'rd-sp'), toc, this.bmBtn, aa, this.lampBtn);
     this.measureEl.setAttribute('aria-hidden', 'true');
-    root.replaceChildren(desk, lamp, pile, wrap, bar, this.measureEl);
+    root.replaceChildren(desk, lamp, pile, wrap, bar, this.count, this.measureEl);
 
-    this.fs = defaultFontSize(this.win.innerWidth);
+    const settings = store.read().settings;
+    this.explicitFs = settings.fontSize === STORE_DEFAULT_FONT ? null : settings.fontSize;
+    this.fs = this.explicitFs ?? defaultFontSize(this.win.innerWidth);
+    root.classList.toggle('lamp', settings.theme === 'lamp');
+    this.lampBtn.setAttribute('aria-pressed', String(settings.theme === 'lamp'));
+    this.markOpened(); // before the colophon is built: its formular shows today
     this.g = this.geometry();
     this.applyVars(this.g);
     this.bookEl.classList.toggle('single', !this.g.spread);
@@ -172,7 +211,9 @@ export class Reader {
 
   close(): void {
     if (this.closed) return;
+    this.savePlace();
     this.closed = true;
+    this.o.root.classList.remove('lamp');
     clearTimeout(this.relayoutTimer);
     clearTimeout(this.flashTimer);
     this.win.cancelAnimationFrame(this.hoverFrame);
@@ -185,6 +226,7 @@ export class Reader {
     const target = this.s + dir;
     if (target < 0 || target > this.maxS) return;
     this.dismissNote();
+    this.closePop();
     this.busy = true;
     try {
       if (this.o.reducedMotion) await this.fade(target);
@@ -203,8 +245,10 @@ export class Reader {
 
   // ---- layout -------------------------------------------------------------------------------------------------
 
+  /** The size follows the window until «Aa» is used; then the chosen size wins. */
   private geometry(): Geometry {
-    return computeGeometry(this.win.innerWidth, this.win.innerHeight, this.fs);
+    const fs = this.explicitFs ?? defaultFontSize(this.win.innerWidth);
+    return computeGeometry(this.win.innerWidth, this.win.innerHeight, fs);
   }
 
   private spreadOf(page: number): number {
@@ -217,18 +261,6 @@ export class Reader {
   private pageOfElement(e: Element): number {
     const r = e.getClientRects()[0] ?? e.getBoundingClientRect();
     return pageIndex(r.left - this.parts!.flow.getBoundingClientRect().left, this.g!);
-  }
-
-  /** What to keep in view across a relayout: the block at the top of the first page on display, or a front page. */
-  private anchor(): { block: Element | null; page: number } {
-    const page = this.page;
-    if (!this.layout || page < this.layout.bodyStart) return { block: null, page };
-    let block: Element | null = null;
-    for (const b of Array.from(this.parts!.body.querySelectorAll(':scope > [data-b]'))) {
-      if (this.pageOfElement(b) > page) break;
-      block = b;
-    }
-    return { block, page };
   }
 
   /** Debounced relayout. A resize that leaves the geometry as it was (a phone's address bar) changes nothing;
@@ -251,17 +283,30 @@ export class Reader {
       return;
     }
     const g = this.geometry();
-    const kept = keep && this.layout ? this.anchor() : null;
+    const kept = keep && this.layout && this.placed ? this.place : null;
     this.dismissNote(); // the card is placed beside a number that is about to move
     this.g = g;
+    this.fs = g.fs;
     this.layout = layoutFlow(this.parts, g);
     const refs = this.parts.flow.querySelector(':scope > section.refs');
     this.refsStart = refs ? this.pageOfElement(refs) : Number.POSITIVE_INFINITY;
     this.fillContents(this.layout);
     this.assemble();
-    if (kept) this.s = this.spreadOf(kept.block ? this.pageOfElement(kept.block) : kept.page);
-    else this.s = Math.min(this.s, this.maxS);
-    this.render();
+    if (!this.placed) {
+      this.s = this.spreadOf(this.restorePage());
+      this.placed = true;
+    } else if (kept) {
+      // The place is the character the reader was at (a block and an offset), found again in the new layout.
+      const page = this.locate(kept) ?? this.page;
+      this.s = this.spreadOf(page);
+      this.place = kept.b === NO_BLOCK ? this.anchorOf(page) : anchorAt(page, this.layout, () => ({ b: kept.b, o: kept.o }));
+    } else this.s = Math.min(this.s, this.maxS);
+    this.holding = !!kept;
+    try {
+      this.render();
+    } finally {
+      this.holding = false;
+    }
   }
 
   /** Contents rows get their page numbers (1-based) from the measured chapters. */
@@ -377,6 +422,7 @@ export class Reader {
     const read = this.maxS ? this.s / this.maxS : 0;
     this.bookEl.style.setProperty('--sl', `${g.spread ? 3 + read * 15 : 0}px`);
     this.bookEl.style.setProperty('--sr', `${g.spread ? 3 + (1 - read) * 15 : 2 + (1 - read) * 4}px`);
+    this.shown();
   }
 
   // ---- cover --------------------------------------------------------------------------------------------------
@@ -538,10 +584,23 @@ export class Reader {
     on(this.bookEl, 'pointermove', (e) => this.onPointerMove(e));
     on(this.bookEl, 'pointerup', (e) => this.onPointerUp(e, false));
     on(this.bookEl, 'pointercancel', (e) => this.onPointerUp(e, true));
+    // A pointerup that never reaches the book (capture refused, or released elsewhere) must not leave `busy` set.
+    const onLost = (e: PointerEvent) => {
+      if (this.drag && e.pointerId === this.drag.id) this.abandonDrag();
+    };
+    on(this.bookEl, 'lostpointercapture', onLost);
+    this.win.addEventListener('pointerup', onLost);
+    this.win.addEventListener('pointercancel', onLost);
+    this.cleanup.push(
+      () => this.win.removeEventListener('pointerup', onLost),
+      () => this.win.removeEventListener('pointercancel', onLost),
+    );
   }
 
   private onKey(e: KeyboardEvent): void {
     if (e.defaultPrevented || e.ctrlKey || e.metaKey || e.altKey) return;
+    // Space and Enter on a focused button or link press it; they do not turn the page.
+    if ((e.key === ' ' || e.key === 'Enter') && (e.target as Element | null)?.closest?.('button, a[href], input, select, textarea, summary')) return;
     // A fold-out lies over the whole book: its keys (arrows, space) scroll it, only Esc is the reader's.
     if (e.key !== 'Escape' && foldoutOpen(this.o.root)) return;
     switch (e.key) {
@@ -550,6 +609,10 @@ export class Reader {
         if (closeFoldout(this.o.root)) break;
         if (noteOpen(this.o.root)) {
           this.dismissNote();
+          break;
+        }
+        if (this.pop) {
+          this.closePop();
           break;
         }
         this.o.onClose();
@@ -698,7 +761,14 @@ export class Reader {
       }
       return;
     }
-    if (t.closest('.rd-fold, .rd-bar') || !this.layout) return;
+    // A menu button may have been replaced while it handled the click, so the menu is found on the event's path.
+    const inPop = !!this.popEl && e.composedPath().includes(this.popEl);
+    if (this.pop && !inPop && !t.closest('.rd-bar')) {
+      // A click away from the menu puts it away and does nothing else.
+      this.closePop();
+      return;
+    }
+    if (inPop || t.closest('.rd-fold, .rd-bar') || !this.layout) return;
     if (this.busy || performance.now() < this.quietUntil) return;
     const hit = this.hit(e.clientX, e.clientY, NOTE_SLOP[(e as PointerEvent).pointerType || (e.detail === 0 ? 'mouse' : this.lastPointer)] ?? NOTE_SLOP.mouse);
     if (noteOpen(this.o.root)) {
@@ -716,6 +786,7 @@ export class Reader {
   }
 
   private act(hit: Hit, e: MouseEvent): void {
+    this.closePop();
     switch (hit.kind) {
       case 'note': {
         const note = findNote(this.o.book.notes, hit.key, hit.n);
@@ -826,6 +897,7 @@ export class Reader {
   /** Opens a fold-out with a copy of the plate, set free of the page's measuring styles. */
   private openPlate(fig: Element): void {
     this.dismissNote();
+    this.closePop();
     const copy = fig.cloneNode(true) as HTMLElement;
     copy.classList.remove('fold');
     copy.removeAttribute('style');
@@ -850,6 +922,341 @@ export class Reader {
     } catch {
       // A history that refuses state only costs the back-or-replace choice on close.
     }
+  }
+
+  // ---- bar, menus, memory (spec sections 8.9, 8.10 and 9) -----------------------------------------------------------
+
+  /** A bar button: the words on a desktop, an icon on a phone (CSS decides); `icon` null keeps the words always. */
+  private barButton(label: string, icon: string | null, f: (b: HTMLButtonElement) => void): HTMLButtonElement {
+    const b = this.el('button', icon ? 'rd-btn' : 'rd-btn rd-txt') as HTMLButtonElement;
+    b.setAttribute('type', 'button');
+    b.setAttribute('aria-label', label);
+    if (icon) {
+      const svg = this.doc.createElementNS('http://www.w3.org/2000/svg', 'svg');
+      svg.setAttribute('class', 'rd-ico');
+      svg.setAttribute('viewBox', '0 0 20 20');
+      svg.setAttribute('aria-hidden', 'true');
+      svg.innerHTML = ICONS[icon]; // fixed drawing from this file, no data
+      b.append(svg);
+    }
+    b.append(this.el('span', 'rd-lbl', label));
+    b.addEventListener('click', () => f(b));
+    return b;
+  }
+
+  private goToContents(): void {
+    if (!this.parts || !this.layout) return;
+    this.closePop();
+    this.goToPage(this.pageOfElement(this.parts.contents));
+  }
+
+  private toggleLamp(): void {
+    const on = !this.o.root.classList.contains('lamp');
+    this.o.root.classList.toggle('lamp', on);
+    this.lampBtn?.setAttribute('aria-pressed', String(on));
+    this.o.store.write((s) => {
+      s.settings.theme = on ? 'lamp' : 'paper';
+    });
+  }
+
+  /** The menus under «Закладка» and «Aa»: one at a time, closed by Esc, a click away or the same button. */
+  private togglePop(kind: Pop, opener: HTMLElement): void {
+    if (this.pop === kind) {
+      this.closePop();
+      return;
+    }
+    if (!this.layout) return;
+    this.closePop();
+    this.dismissNote();
+    this.pop = kind;
+    this.opener = opener;
+    opener.setAttribute('aria-expanded', 'true');
+    this.popEl = this.el('div', 'rd-pop');
+    this.popEl.setAttribute('role', 'group');
+    this.popEl.setAttribute('aria-label', kind === 'bm' ? 'Закладки' : 'Размер шрифта');
+    this.o.root.append(this.popEl);
+    this.renderPop();
+    this.popEl.querySelector<HTMLElement>('button:not(:disabled)')?.focus();
+  }
+
+  private closePop(): void {
+    if (!this.pop) return;
+    const inside = !!this.popEl?.contains(this.doc.activeElement);
+    this.popEl?.remove();
+    this.popEl = null;
+    this.pop = null;
+    this.opener?.removeAttribute('aria-expanded');
+    if (inside) this.opener?.focus();
+    this.opener = null;
+  }
+
+  private popButton(text: string, f: () => void, cls = 'rd-pop-btn'): HTMLButtonElement {
+    const b = this.el('button', cls, text) as HTMLButtonElement;
+    b.setAttribute('type', 'button');
+    b.addEventListener('click', f);
+    return b;
+  }
+
+  private renderPop(): void {
+    const box = this.popEl;
+    if (!box || !this.pop) return;
+    const active = this.doc.activeElement;
+    const focus = active instanceof HTMLElement && box.contains(active) ? active.dataset.k : undefined;
+    box.replaceChildren();
+    if (this.pop === 'fs') this.renderFontPop(box);
+    else this.renderBookmarkPop(box);
+    if (focus) box.querySelector<HTMLElement>(`[data-k="${focus}"]:not(:disabled)`)?.focus();
+  }
+
+  private renderFontPop(box: HTMLElement): void {
+    const row = this.el('div', 'rd-pop-row');
+    const less = this.popButton('А−', () => this.setFontSize(this.fs - 1), 'rd-pop-btn rd-pop-step');
+    less.setAttribute('aria-label', 'Мельче');
+    less.dataset.k = 'less';
+    less.disabled = this.fs <= MIN_FONT;
+    const more = this.popButton('А+', () => this.setFontSize(this.fs + 1), 'rd-pop-btn rd-pop-step');
+    more.setAttribute('aria-label', 'Крупнее');
+    more.dataset.k = 'more';
+    more.disabled = this.fs >= MAX_FONT;
+    row.append(less, this.el('span', 'rd-pop-val', `${this.fs} px`), more);
+    const reset = this.popButton('По ширине окна', () => this.setFontSize(null));
+    reset.dataset.k = 'reset';
+    reset.disabled = this.explicitFs === null;
+    box.append(row, reset);
+  }
+
+  /** The size is chosen by the reader: kept in the store, and the book is laid out again with its place kept (`relayout`). */
+  private setFontSize(size: number | null): void {
+    const fs = size === null ? null : Math.max(MIN_FONT, Math.min(MAX_FONT, Math.round(size)));
+    if (fs === this.explicitFs) return;
+    this.explicitFs = fs;
+    this.o.store.write((s) => {
+      s.settings.fontSize = fs ?? STORE_DEFAULT_FONT;
+    });
+    if (this.layout) this.relayout(true);
+    else this.fs = fs ?? defaultFontSize(this.win.innerWidth);
+    this.renderPop();
+  }
+
+  /** The pages on display: both of a spread, or the one page. */
+  private shownPages(): number[] {
+    const n = this.pages;
+    if (!n || !this.g) return [];
+    const list = this.g.spread ? [2 * this.s - 1, 2 * this.s] : [this.s];
+    return list.filter((p) => p >= 0 && p < n);
+  }
+
+  private memory(): BookMemory | null {
+    return this.o.store.read().books[this.o.entry.id] ?? null;
+  }
+
+  private bookmarkPage(memory: BookMemory, m: Anchor): number {
+    return this.restoreIn({ ...memory, at: m });
+  }
+
+  private renderBookmarkPop(box: HTMLElement): void {
+    const memory = this.memory();
+    const marks = (memory?.bookmarks ?? []).map((m) => ({ m, page: this.bookmarkPage(memory!, m) })).sort((a, b) => a.page - b.page);
+    const here = this.shownPages();
+    const onPage = marks.filter((x) => here.includes(x.page));
+    const main = onPage.length
+      ? this.popButton('Убрать закладку отсюда', () => this.removeBookmarks(onPage.map((x) => x.m)))
+      : this.popButton('Добавить закладку', () => this.addBookmark());
+    main.dataset.k = 'main';
+    box.append(main);
+    if (!marks.length) {
+      box.append(this.el('p', 'rd-pop-empty', 'Закладок пока нет'));
+      return;
+    }
+    const list = this.el('ul', 'rd-pop-list');
+    for (const { m, page } of marks) {
+      const li = this.el('li');
+      const go = this.popButton('', () => {
+        this.closePop();
+        this.goToPage(page);
+      }, 'rd-pop-go');
+      go.append(this.el('span', 'rd-pop-pg', String(page + 1)), this.el('span', 'rd-pop-name', this.runningHead(page)), this.el('span', 'rd-pop-date', m.t));
+      const del = this.popButton('×', () => this.removeBookmarks([m]), 'rd-pop-x');
+      del.setAttribute('aria-label', `Убрать закладку: страница ${page + 1}`);
+      li.append(go, del);
+      list.append(li);
+    }
+    box.append(list);
+  }
+
+  private addBookmark(): void {
+    const mark = { ...this.anchorOf(this.placePage()), t: localDate() };
+    this.o.store.write((s) => {
+      this.memoryIn(s).bookmarks.push(mark); // the store keeps the last 50
+    });
+    this.renderPop();
+    this.shown();
+  }
+
+  private removeBookmarks(list: Anchor[]): void {
+    this.o.store.write((s) => {
+      const m = this.memoryIn(s);
+      m.bookmarks = m.bookmarks.filter((b) => !list.some((x) => x.b === b.b && x.o === b.o && x.f === b.f));
+    });
+    this.renderPop();
+    this.shown();
+  }
+
+  private memoryIn(s: LibraryState): BookMemory {
+    const id = this.o.entry.id;
+    return (s.books[id] ??= { hash: this.o.book.contentHash, at: null, bookmarks: [], opened: [], finished: [] });
+  }
+
+  /** The date of opening goes into the formular (`opened`); a new book gets its entry. */
+  private markOpened(): void {
+    const today = localDate();
+    this.o.store.write((s) => {
+      const m = this.memoryIn(s);
+      if (!m.opened.includes(today)) m.opened.push(today);
+    });
+  }
+
+  /** The page to open on (spec 8.10); a changed book also gets its stored places made again for the new text. */
+  private restorePage(): number {
+    const memory = this.memory();
+    const page = this.restoreIn(memory);
+    if (memory && memory.hash !== this.o.book.contentHash) this.adoptBook(memory);
+    return page;
+  }
+
+  private restoreIn(memory: BookMemory | null): number {
+    return chooseRestorePage(memory, this.o.book, this.layout!, (a) => this.locate(a));
+  }
+
+  /** Another text under the same id: the anchors found by chapter or share are written again as anchors of this text. */
+  private adoptBook(memory: BookMemory): void {
+    const moved = (a: Anchor) => this.anchorOf(this.restoreIn({ ...memory, at: a }));
+    const bookmarks = memory.bookmarks.map((m) => ({ ...moved(m), t: m.t }));
+    this.o.store.write((s) => {
+      const m = this.memoryIn(s);
+      m.hash = this.o.book.contentHash;
+      m.bookmarks = bookmarks;
+    });
+  }
+
+  /** The page that stands for the spread: its first page of the text, else its first page. */
+  private placePage(): number {
+    return this.shownPages().find((p) => this.inBody(p)) ?? this.page;
+  }
+
+  /** What is kept at every page and at close: the place of the reader. */
+  private savePlace(): void {
+    if (!this.layout || !this.placed) return;
+    const at = this.place ?? this.anchorOf(this.placePage());
+    this.o.store.write((s) => {
+      const m = this.memoryIn(s);
+      m.hash = this.o.book.contentHash;
+      m.at = at;
+    });
+  }
+
+  /** After every change of what is on display: the counter, the bookmark mark, the place, the day of finishing. */
+  private shown(): void {
+    if (!this.layout || !this.g) return;
+    if (this.count) this.count.textContent = `${this.placePage() + 1} из ${this.pages}`; // the number printed on the page being read
+    if (this.bmBtn) {
+      const here = this.shownPages();
+      const memory = this.memory();
+      const on = !!memory && memory.bookmarks.some((m) => here.includes(this.bookmarkPage(memory, m)));
+      this.bmBtn.classList.toggle('on', on);
+      this.bmBtn.setAttribute('aria-pressed', String(on));
+    }
+    if (!this.placed) return;
+    if (!this.holding || !this.place) this.place = this.anchorOf(this.placePage());
+    this.savePlace();
+    const last = this.shownPages().pop();
+    if (last !== undefined && isFinished(last, this.layout)) this.markFinished();
+  }
+
+  /** The colophon is on display (spec 8.10): today goes into the formular once a day. */
+  private markFinished(): void {
+    const today = localDate();
+    if (this.finishedDay === today) return;
+    this.finishedDay = today;
+    if (this.memory()?.finished.includes(today)) return;
+    this.o.store.write((s) => {
+      this.memoryIn(s).finished.push(today);
+    });
+    this.showDates();
+  }
+
+  /** The formular of every copy of the colophon shows the dates of the memory. */
+  private showDates(): void {
+    const m = this.memory();
+    if (!m) return;
+    const list = (dates: string[]) => (dates.length ? dates.join(', ') : '—');
+    for (const flow of [this.parts?.flow, this.left?.flow, this.right?.flow, this.leaf?.front.flow, this.leaf?.back.flow]) {
+      const cells = flow?.querySelectorAll('.fm-card dd');
+      if (!cells || cells.length < 2) continue;
+      cells[0].textContent = list(m.opened);
+      cells[1].textContent = list(m.finished);
+    }
+  }
+
+  // ---- anchors: the measuring side of `position.ts` ------------------------------------------------------------
+
+  private inBody(page: number): boolean {
+    const l = this.layout;
+    return !!l && page >= l.bodyStart && page < Math.min(this.refsStart, l.endStart);
+  }
+
+  private anchorOf(page: number): Anchor {
+    return anchorAt(page, this.layout!, (p) => this.blockOn(p));
+  }
+
+  /** The page of an anchor: its block and offset; a place with no block (`NO_BLOCK`) by its share of the book. */
+  private locate(a: Anchor): number | null {
+    const layout = this.layout;
+    if (!layout || !this.parts) return null;
+    if (a.b === NO_BLOCK) return a.f === undefined ? null : Math.round(a.f * (layout.pages - 1));
+    const block = Array.from(this.parts.body.querySelectorAll(':scope > [data-b]')).find((e) => Number(e.getAttribute('data-b')) === a.b);
+    if (!block) return null;
+    return a.o > 0 ? this.pageAtOffset(block, a.o) : this.pageOfElement(block);
+  }
+
+  /** The block at the top of a page of the text, and the offset in it where the page begins (0 if the block begins there). */
+  private blockOn(p: number): { b: number; o: number } | null {
+    if (!this.parts || !this.inBody(p)) return null;
+    let block: Element | null = null;
+    let start = 0;
+    for (const e of Array.from(this.parts.body.querySelectorAll(':scope > [data-b]'))) {
+      const at = this.pageOfElement(e);
+      if (at > p) break;
+      block = e;
+      start = at;
+    }
+    const b = block ? Number(block.getAttribute('data-b')) : Number.NaN;
+    if (!block || !Number.isFinite(b)) return null;
+    if (start >= p) return { b, o: 0 };
+    // The block runs on to this page: the first character that is on it, by bisection (the page grows with the offset).
+    let lo = 0;
+    let hi = block.textContent?.length ?? 0;
+    while (lo + 1 < hi) {
+      const mid = (lo + hi) >> 1;
+      if (this.pageAtOffset(block, mid) >= p) hi = mid;
+      else lo = mid;
+    }
+    return { b, o: hi };
+  }
+
+  /** The page of the character at `offset` in a block of the measuring flow (the block's own page if it has no box). */
+  private pageAtOffset(block: Element, offset: number): number {
+    const flowLeft = this.parts!.flow.getBoundingClientRect().left;
+    for (let k = 0; k < 4; k++) {
+      const at = textPoint(block, offset + k);
+      if (!at) break;
+      const range = this.doc.createRange();
+      range.setStart(at.node, at.k);
+      range.setEnd(at.node, Math.min(at.node.data.length, at.k + 1));
+      const r = range.getClientRects()[0];
+      if (r) return pageIndex(r.left - flowLeft, this.g!);
+    }
+    return this.pageOfElement(block);
   }
 
   // ---- helpers ------------------------------------------------------------------------------------------------
@@ -894,4 +1301,24 @@ function shade(hex: string, amount: number): string {
   const n = parseInt(hex.slice(1), 16);
   const ch = (v: number) => Math.max(0, Math.min(255, Math.round(v + amount))).toString(16).padStart(2, '0');
   return `#${ch(n >> 16)}${ch((n >> 8) & 255)}${ch(n & 255)}`;
+}
+
+/** Today as `YYYY-MM-DD` in the reader's own time (the dates of the formular, spec 9). */
+function localDate(): string {
+  const d = new Date();
+  const two = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${two(d.getMonth() + 1)}-${two(d.getDate())}`;
+}
+
+/** The text node and the position in it for a character offset of a block; past the end, the last character. */
+function textPoint(block: Element, offset: number): { node: Text; k: number } | null {
+  const walker = block.ownerDocument.createTreeWalker(block, NodeFilter.SHOW_TEXT);
+  let left = offset;
+  let last: Text | null = null;
+  for (let n = walker.nextNode() as Text | null; n; n = walker.nextNode() as Text | null) {
+    if (left < n.data.length) return { node: n, k: left };
+    left -= n.data.length;
+    last = n;
+  }
+  return last && last.data.length ? { node: last, k: last.data.length - 1 } : null;
 }

@@ -1094,3 +1094,274 @@ html.ers-library-open body {
     transition: none;
   }
 }
+
+/* ---- the bar: «Закрыть», «Оглавление», «Закладка», «Aa», «Лампа», and the counter (spec 8.9; Task 21) ---- */
+.ers-reader .rd-bar {
+  gap: 8px;
+}
+.ers-reader .rd-bar .rd-sp {
+  flex: 1;
+  pointer-events: none;
+}
+.ers-reader .rd-bar .rd-ico {
+  display: none;
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.ers-reader .rd-btn[aria-pressed="true"],
+.ers-reader .rd-btn[aria-expanded="true"] {
+  background: var(--sage);
+  color: #fff;
+}
+.ers-reader .rd-btn:disabled {
+  opacity: .45;
+  cursor: default;
+}
+.ers-reader .rd-count {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 4px;
+  z-index: 9;
+  text-align: center;
+  color: rgba(255, 240, 214, .86);
+  font: 600 13px/1 var(--ui);
+  letter-spacing: .04em;
+  pointer-events: none;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, .5);
+}
+
+/* The menus of «Закладка» and «Aa». */
+.ers-reader .rd-pop {
+  position: absolute;
+  top: 58px;
+  right: 12px;
+  z-index: 10;
+  width: min(320px, calc(100% - 24px));
+  max-height: calc(100% - 100px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 12px;
+  background: var(--stone);
+  color: var(--ink);
+  border: 1.8px solid var(--ink);
+  border-radius: 12px;
+  box-shadow: 0 14px 34px rgba(0, 0, 0, .38);
+}
+.ers-reader .rd-pop-btn,
+.ers-reader .rd-pop-go,
+.ers-reader .rd-pop-x {
+  font: 600 14px/1.2 var(--ui);
+  color: inherit;
+  cursor: pointer;
+}
+.ers-reader .rd-pop-btn {
+  display: block;
+  width: 100%;
+  min-height: 40px;
+  padding: 0 12px;
+  background: var(--sand);
+  border: 1.3px solid var(--ink);
+  border-radius: 8px;
+}
+.ers-reader .rd-pop-btn:disabled {
+  opacity: .45;
+  cursor: default;
+}
+.ers-reader .rd-pop-btn:focus-visible,
+.ers-reader .rd-pop-go:focus-visible,
+.ers-reader .rd-pop-x:focus-visible {
+  outline: 2px solid #C86D51;
+  outline-offset: 2px;
+}
+.ers-reader .rd-pop-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.ers-reader .rd-pop-row .rd-pop-step {
+  width: 56px;
+  flex: none;
+  font-size: 16px;
+}
+.ers-reader .rd-pop-val {
+  flex: 1;
+  text-align: center;
+  font: 600 15px/1 var(--ui);
+}
+.ers-reader .rd-pop-empty {
+  margin: 10px 0 2px;
+  color: var(--muted);
+  font: 400 13.5px/1.4 var(--ui);
+}
+.ers-reader .rd-pop-list {
+  list-style: none;
+  margin: 10px 0 0;
+  padding: 0;
+}
+.ers-reader .rd-pop-list li {
+  display: flex;
+  align-items: stretch;
+  border-top: 1px solid rgba(44, 48, 46, .25);
+}
+.ers-reader .rd-pop-go {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 4px;
+  background: none;
+  border: 0;
+  text-align: left;
+}
+.ers-reader .rd-pop-pg {
+  flex: none;
+  min-width: 2.2em;
+  color: var(--terra);
+}
+.ers-reader .rd-pop-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 500;
+}
+.ers-reader .rd-pop-date {
+  flex: none;
+  color: var(--muted);
+  font-weight: 400;
+  font-size: 12px;
+}
+.ers-reader .rd-pop-x {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  padding: 0;
+  background: none;
+  border: 0;
+  font-size: 20px;
+  color: var(--muted);
+}
+
+/* On a phone the bar holds icons: five 44 px buttons and the gaps are 252 px of 375. «Aa» keeps its letters. */
+@media (max-width: 560px) {
+  .ers-reader .rd-bar .rd-btn {
+    width: 44px;
+    height: 44px;
+    padding: 0;
+  }
+  .ers-reader .rd-bar .rd-btn:not(.rd-txt) .rd-lbl {
+    display: none;
+  }
+  .ers-reader .rd-bar .rd-ico {
+    display: block;
+  }
+  .ers-reader .rd-bar {
+    padding: 0 8px;
+  }
+}
+
+/* ---- the lamp: night paper (spec 8.9). Tokens first, then the greys that the day paper spells out as colours ---- */
+.ers-reader.lamp {
+  --paper: #2B2823;
+  --paperink: #E8E0CB;
+  --sage: #8FC4A4;
+  --terra: #E69A7B;
+  --muted: #B5AE9B;
+  --stone: #37332C;
+  --sand: #46413A;
+  background: #221A11;
+}
+.ers-reader.lamp .rd-desk {
+  background:
+    radial-gradient(ellipse 52% 68% at 6% 20%, rgba(255, 190, 100, .36), rgba(255, 190, 100, 0) 70%),
+    repeating-linear-gradient(90deg, rgba(0, 0, 0, 0) 0 118px, rgba(0, 0, 0, .22) 118px 120px),
+    linear-gradient(#3A2A1A, #271C11);
+}
+.ers-reader.lamp .rd-btn,
+.ers-reader.lamp .rd-card,
+.ers-reader.lamp .rd-note,
+.ers-reader.lamp .rd-pop {
+  color: #F1E8D0;
+  border-color: rgba(255, 232, 186, .55);
+}
+.ers-reader.lamp .rd-btn {
+  background: rgba(46, 42, 35, .94);
+}
+.ers-reader.lamp .rd-btn[aria-pressed="true"],
+.ers-reader.lamp .rd-btn[aria-expanded="true"] {
+  background: #2E5A44;
+}
+.ers-reader.lamp .rd-pop-btn {
+  border-color: rgba(255, 232, 186, .45);
+}
+.ers-reader.lamp .rd-pop-list li {
+  border-top-color: rgba(255, 232, 186, .22);
+}
+.ers-reader.lamp .rd-pg {
+  border-color: #0F0D0A;
+}
+.ers-reader.lamp .rd-stack {
+  background: repeating-linear-gradient(90deg, #6E6757 0 1px, #544E41 1px 2px);
+  border-color: #0F0D0A;
+}
+.ers-reader.lamp .rd-head,
+.ers-reader.lamp .rd-folio,
+.ers-reader.lamp .flow .fm-description,
+.ers-reader.lamp .flow .fm-library,
+.ers-reader.lamp .fm.verso dt,
+.ers-reader.lamp .flow .fm-unchanged,
+.ers-reader.lamp .refs li.missing .ref-text,
+.ers-reader.lamp .person-role,
+.ers-reader.lamp .person-affiliation,
+.ers-reader.lamp .person-orcid,
+.ers-reader.lamp .flow sup.note.rd-next-note::before,
+.ers-reader.lamp .rd-fold-body figcaption {
+  color: #A59D88;
+}
+.ers-reader.lamp .flow hr {
+  border-top-color: #6B6556;
+}
+.ers-reader.lamp .fm.contents li::after {
+  border-bottom-color: #6B6556;
+}
+.ers-reader.lamp .flow td,
+.ers-reader.lamp .fm-card dd,
+.ers-reader.lamp .fm-card dt,
+.ers-reader.lamp .rd-fold-body td {
+  border-color: rgba(232, 224, 203, .28);
+}
+.ers-reader.lamp .flow img,
+.ers-reader.lamp .fm-next li,
+.ers-reader.lamp .fm-card dl {
+  border-color: rgba(232, 224, 203, .45);
+}
+.ers-reader.lamp .fm-next li {
+  background: rgba(255, 255, 255, .05);
+}
+.ers-reader.lamp .flow .plate pre,
+.ers-reader.lamp .fm-card dt {
+  background: rgba(255, 240, 200, .07);
+}
+.ers-reader.lamp .flow .rd-unf {
+  background: #37332C;
+  color: #F1E8D0;
+  border-color: rgba(255, 232, 186, .55);
+}
+.ers-reader.lamp .rd-count {
+  color: rgba(255, 232, 186, .78);
+}
+.ers-reader.lamp .rd-lamp {
+  filter: drop-shadow(0 0 26px rgba(255, 190, 100, .7));
+}
