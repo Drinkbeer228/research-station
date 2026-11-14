@@ -126,3 +126,22 @@ test('returns a fragment with nothing from comments', () => {
   const box = run('<!-- hi --><p>a</p>');
   assert.equal(box.innerHTML, '<p>a</p>');
 });
+
+test('an image gets loading and its size before src', () => {
+  // linkedom lists attributes newest first, so the order of the setAttribute calls is what is checked.
+  const { document } = parseHTML('<!doctype html><html><body></body></html>');
+  const calls: string[] = [];
+  const create = document.createElementNS.bind(document);
+  document.createElementNS = ((ns: string, tag: string) => {
+    const el = create(ns, tag);
+    const set = el.setAttribute.bind(el);
+    el.setAttribute = (name: string, value: string) => {
+      if (tag === 'img') calls.push(name);
+      set(name, value);
+    };
+    return el;
+  }) as typeof document.createElementNS;
+  sanitizeBookHtml('<img src="https://drinkbeer228.github.io/elephantology/a.png" loading="lazy" width="10" height="5" alt="a">', document);
+  assert.equal(calls[calls.length - 1], 'src');
+  assert.ok(calls.indexOf('loading') >= 0 && calls.indexOf('loading') < calls.indexOf('src'));
+});

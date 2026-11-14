@@ -190,6 +190,11 @@ export class Reader {
     }
 
     this.parts = buildFlow(this.doc, catalog, entry, book, store.read().books[entry.id] ?? null);
+    // A picture without width and height gets its size only when it arrives: lay out again once it has.
+    this.parts.flow.querySelectorAll<HTMLImageElement>('img').forEach((img) => {
+      if (img.hasAttribute('width') && img.hasAttribute('height')) return;
+      img.addEventListener('load', () => this.scheduleRelayout(true), { once: true });
+    });
     this.prepareBody(this.parts.body);
     this.linear = this.makeLinear(this.parts.flow); // before the measuring layout puts its styles on the flow
     this.o.root.insertBefore(this.linear, this.measureEl);
