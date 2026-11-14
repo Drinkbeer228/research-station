@@ -85,6 +85,8 @@ export class Reader {
   private bookEl: HTMLElement;
   private measureEl: HTMLElement;
   private cover: HTMLElement | null = null;
+  private compact: boolean | null = null;
+  private noteOpener: HTMLElement | null = null;
   private left: Page | null = null;
   private right: Page | null = null;
   private leaf: Leaf | null = null;
@@ -183,7 +185,9 @@ export class Reader {
     this.applyVars(this.g);
     this.barMode(this.g);
     this.bookEl.classList.toggle('single', !this.g.spread);
-    if (!reducedMotion) {
+    // A reader who returns to a place in the book is not shown the cover opening again.
+    const returning = !!this.o.store.read().books[entry.id]?.at;
+    if (!reducedMotion && !returning) {
       this.cover = this.makeCover();
       this.bookEl.append(this.cover);
       if (this.g.spread) this.bookEl.classList.add('closed');
@@ -414,6 +418,11 @@ export class Reader {
     }
     if (this.cover) book.append(this.cover);
     // The pages on display are not inert, so their text can be selected (spec 12); the leaf's windows stay inert.
+    // While the cover is still on the book, nothing under it can be selected.
+    if (!this.cover) this.uninertShown();
+  }
+
+  private uninertShown(): void {
     for (const p of [this.left, this.right]) p?.flow.removeAttribute('inert');
   }
 
@@ -484,6 +493,7 @@ export class Reader {
       cover.remove();
       this.cover = null;
       this.busy = false;
+      this.uninertShown();
     }
   }
 
@@ -771,11 +781,18 @@ export class Reader {
     const onDown = (e: PointerEvent) => {
       this.lastPointer = e.pointerType || 'mouse';
     };
+    // The windows are aria-hidden: a click that focuses a link in them (tabindex -1) must not keep the focus there.
+    const onFocusIn = (e: FocusEvent) => {
+      const t = e.target as Element | null;
+      if (t && t !== root && t.closest?.('.rd-win')) (t as HTMLElement).blur();
+    };
     root.addEventListener('pointerdown', onDown, true);
+    root.addEventListener('focusin', onFocusIn);
     root.addEventListener('click', onClick);
     root.addEventListener(REFS_EVENT, onRefs);
     return () => {
       root.removeEventListener('pointerdown', onDown, true);
+      root.removeEventListener('focusin', onFocusIn);
       root.removeEventListener('click', onClick);
       root.removeEventListener(REFS_EVENT, onRefs);
     };
@@ -783,7 +800,12 @@ export class Reader {
 
   private dismissNote(): void {
     this.noteKey = null;
+    const opener = this.noteOpener;
+    this.noteOpener = null;
+    const hadFocus = noteOpen(this.o.root) && this.o.root.querySelector(':scope > .rd-note')?.contains(this.doc.activeElement);
     hideNote(this.o.root);
+    // A card opened from the linear copy gives the focus back to the button that opened it.
+    if (hadFocus && opener?.isConnected) opener.focus({ preventScroll: true });
   }
 
   /** Every click in the reader: the card and the fold-out take their own, the rest is resolved against the page. */
@@ -861,6 +883,7 @@ export class Reader {
       const note = findNote(this.o.book.notes, sup.getAttribute('data-key'), b.dataset.note ?? null);
       if (!note) return;
       this.noteKey = note.key;
+      this.noteOpener = b;
       // The card has no number on a page to sit beside: it goes to the middle of the screen.
       showNote(this.o.root, this.o.root, note, { x: this.win.innerWidth / 2, y: this.win.innerHeight / 2 });
       return;
@@ -1032,7 +1055,11 @@ export class Reader {
     if (this.pop === 'fs') this.renderFontPop(box);
     else if (this.pop === 'more') this.renderMorePop(box);
     else this.renderBookmarkPop(box);
-    if (focus) box.querySelector<HTMLElement>(`[data-k="${focus}"]:not(:disabled)`)?.focus();
+    if (focus) {
+      // «А+» or «А−» that has just become disabled hands the focus to the other one, not to the page.
+      const target = box.querySelector<HTMLElement>(`[data-k="${focus}"]:not(:disabled)`) ?? box.querySelector<HTMLElement>('button:not(:disabled)');
+      target?.focus();
+    }
   }
 
   /** Below the spread (spec 8.9, phones) «Закладка» and «Лампа» are not in the bar: «Ещё» opens a menu with them. */
@@ -1040,7 +1067,10 @@ export class Reader {
     const compact = !g.spread;
     this.bmBtn!.hidden = this.lampBtn!.hidden = compact;
     this.moreBtn!.hidden = !compact;
-    if (!compact && this.pop === 'more') this.closePop();
+    // A relayout in the same mode (a phone's address bar showing or hiding) leaves an open menu alone.
+    if (compact === this.compact) return;
+    this.compact = compact;
+    if (!compact && (this.pop === 'more' || this.opener === this.moreBtn)) this.closePop();
     if (compact && (this.pop === 'bm' || this.opener === this.bmBtn)) this.closePop();
   }
 

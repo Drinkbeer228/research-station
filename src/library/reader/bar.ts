@@ -35,7 +35,11 @@ export function barButton(doc: Document, label: string, icon: string | null, f: 
     b.append(svg);
   }
   b.append(element(doc, 'span', 'rd-lbl', label));
-  b.addEventListener('click', () => f(b));
+  b.addEventListener('click', (e) => {
+    f(b);
+    // After a mouse or finger click the button lets go of the focus, so Space turns the page instead of pressing it again.
+    if (e.detail > 0 && b.ownerDocument.activeElement === b) b.blur();
+  });
   return b;
 }
 
