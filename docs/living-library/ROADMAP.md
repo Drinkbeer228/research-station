@@ -78,11 +78,11 @@
 
 - [x] **2.1** Формулы снова видны на сайте, PDF не публикуются. Репозиторий elephantology, PR #9. Позже правку слили ещё раз в составе #10.
 - [x] **2.2** Читалка, телефонный режим, доступность, e2e и бюджеты. Репозиторий research-station, PR #1 (`391a8cd`), выложено.
-- [ ] **2.3** Слить [elephantology#12](https://github.com/Drinkbeer228/elephantology/pull/12) **merge commit**. Это сборка и публикация каталога плюс правка 35 формул. *Автор.*
+- [x] **2.3** Слить [elephantology#12](https://github.com/Drinkbeer228/elephantology/pull/12) **merge commit**. Это сборка и публикация каталога плюс правка 35 формул. *Автор.*
   - Готово, когда: `https://drinkbeer228.github.io/elephantology/library/catalog.json` отвечает 200 и «Хобот» открывается на живом сайте: `https://drinkbeer228.github.io/research-station/#/library/anatomy/muscular-hydrostat-and-trunk-biomechanics`.
 - [ ] **2.4** Прогнать e2e в WebKit. Хосту нужна библиотека: `sudo apt-get install libavif16` *(автор)*. Затем `npx playwright test --project=webkit`. Расхождения чинить небольшими правками. *(В контейнерном окружении отсутствует бинарник `/ms-playwright/webkit-2388/pw_run.sh`; полный прогон выполнен в Chromium).*
 - [ ] **2.5** Отложенные замечания плана 1 разобраны (2026-11-14): что уже исправлено в T21–T23 и `9b49d44`, снято. Осталось:
-  - [ ] **2.5a [RS] до выкладки — телефон и клавиатура.** Файлы: `src/library/reader/reader.ts`, `bar.ts`, `reader.css`, `notes.ts`.
+  - [x] **2.5a [RS] до выкладки — телефон и клавиатура.** Файлы: `src/library/reader/reader.ts`, `bar.ts`, `reader.css`, `notes.ts`. — [research-station#6](https://github.com/Drinkbeer228/research-station/pull/6), ждёт слияния.
     1. Возвращаясь в книгу на середине, читатель видит, как откидывается обложка. Если в `ers_library_v1` есть место в книге, открывать сразу на нём, без анимации обложки.
     2. После щелчка мышью кнопка панели остаётся в фокусе, и пробел нажимает её снова вместо перелистывания. Снимать фокус (`blur()`) после щелчка указателем.
     3. Когда «А+» или «А−» становится недоступной на 15/22 px, фокус падает на `body`. Переводить его на соседнюю кнопку.
@@ -92,13 +92,13 @@
     7. Пока закрывается обложка, текст под ней можно выделить. Ставить `inert` на окна, пока видна обложка.
     8. Щелчок мышью по ссылке внутри окна страницы (у неё `tabindex=-1`) даёт её в фокус, и Chrome предупреждает «Blocked aria-hidden». Снимать фокус на `pointerdown` внутри `.rd-win`.
     - Проверки: `npm test`, `npx tsc --noEmit`, `npx playwright test --project=chromium`. На каждый пункт 1–8 добавить один короткий сценарий в `tests/e2e/reader.spec.ts`.
-  - [ ] **2.5b [RS] до выкладки — надёжность.** Файлы: `src/library/reader/sanitize.ts`, `src/library/reader/bookDom.ts`, `src/library/reader/paginate.ts`, `scripts/check-budgets.mjs`.
+  - [x] **2.5b [RS] до выкладки — надёжность.** Файлы: `src/library/reader/sanitize.ts`, `src/library/reader/bookDom.ts`, `src/library/reader/paginate.ts`, `scripts/check-budgets.mjs`. — [research-station#5](https://github.com/Drinkbeer228/research-station/pull/5), ждёт слияния.
     1. `sanitize.ts`: атрибуты копируются в порядке источника, и `src` раньше `loading` запускает загрузку отсоединённой картинки. Ставить `loading` и `width`/`height` до `src`. `setAttribute` с недопустимым именем оборачивать в `try`, чтобы одна битая метка не роняла всю книгу.
     2. `bookDom.ts`: `entry.siteUrl` и `url` связей становятся `href` без проверки схемы. Пропускать только `https:`.
     3. `paginate.ts`: картинка без `width`/`height` всё ещё сдвигает вёрстку, когда догружается. Для таких картинок пересчитывать раскладку на событие `load` (один раз на картинку).
     4. `check-budgets.mjs`: проверять, что шрифтов ровно 5. Проверять `catalog.json` с сайта или из `tests/e2e/fixtures/library/catalog.json`: не больше 250 КБ сырого и 60 КБ gzip.
     - Проверки: `npm test`, `npx tsc --noEmit`, `npm run build && npm run check:budgets`.
-  - [ ] **2.5c [EL] до выкладки — сборка.** Файлы: `scripts/library/buildLibrary.ts`, `scripts/build-library.ts`.
+  - [x] **2.5c [EL] до выкладки — сборка.** Файлы: `scripts/library/buildLibrary.ts`, `scripts/build-library.ts`. — [elephantology#13](https://github.com/Drinkbeer228/elephantology/pull/13), ждёт слияния.
     1. Книга, которая не прошла `validateBook`, всё равно записывается и попадает в каталог; ошибка только в отчёте. Сборка должна выходить с кодом 1 и такую книгу не писать.
     2. `build-library.ts` молча игнорирует неизвестные или кривые флаги (опечатка → значения по умолчанию). На неизвестный флаг — ошибка и код 2.
     - Проверки: `npx vitest run`, `npm run build` (70 книг, 0 ошибок KaTeX, 0 ошибок схемы).
@@ -117,7 +117,7 @@
 
 ### Этап 3 — входы в библиотеку
 
-- [ ] **3.1 [EL]** Кнопка «Читать как книгу» на странице статьи.
+- [x] **3.1 [EL]** Кнопка «Читать как книгу» на странице статьи. — [elephantology#14](https://github.com/Drinkbeer228/elephantology/pull/14), ждёт слияния.
   - Где: шапка статьи, `src/article/ArticleMetadataHeader.tsx` (её показывает `src/pages/ArticlePage.tsx`), рядом с метаданными.
   - Ссылка: `https://drinkbeer228.github.io/research-station/#/library/<cat>/<slug>`, где `<cat>/<slug>` — тот же id, что в `siteUrl` книги (`https://drinkbeer228.github.io/elephantology/article/<cat>/<slug>/`); в коде сайта — путь статьи `<cat>/<slug>`. Книги есть у всех 68 статей; у словаря и библиографии id без категории: `glossary`, `bibliography`.
   - Открывать в той же вкладке. «Закрыть» в книге ведёт на кампус Research Station — так задумано, отдельно чинить не нужно.
@@ -136,7 +136,7 @@
   - Добавить урок Elephantorina и строку Keeper Sim там, где связь реальна (по таблице Приложения A спецификации, без ссылки на Keeper Sim у `veterinary/clinical-welfare-and-protected-contact`).
   - Тон — подсказка, не реклама (`Проверить себя · Elephantorina`, `На практике · Elephant Keeper`).
 - [x] **3.4** Одна живая деталь на полке: лампа, тёплый свет и кот, спящий на стопке книг (`sh-lamp` + `sh-pile .rd-cat`). «Меньше движения» отключает анимацию.
-- [ ] **3.5 [EO]** `npm test` в elephantorina не находит тестов: `tsx --test "src/**/*.test.ts"` не раскрывает шаблон. Заменить на явный список или на `find src -name '*.test.ts' | xargs tsx --test`. Проверки: `npm test` находит и проходит `src/utils/deepLink.test.ts`.
+- [x] **3.5 [EO]** `npm test` в elephantorina не находит тестов: `tsx --test "src/**/*.test.ts"` не раскрывает шаблон. Заменить на явный список или на `find src -name '*.test.ts' | xargs tsx --test`. Проверки: `npm test` находит и проходит `src/utils/deepLink.test.ts`. — [elephantorina#10](https://github.com/Drinkbeer228/elephantorina/pull/10), ждёт слияния.
 - [ ] **3.6 [автор] → [RS]** Тексты о Keeper Sim на кампусе: в `index.html` карточки обещают «защищённый контакт», а симулятор с `cbc436d` работает в полном контакте. Автор пишет новую фразу, затем замена в `index.html` (поиск по «защищённый контакт»).
 
 ### Этап 4 — по желанию, потом
@@ -167,3 +167,4 @@
 - 2026-11-13 — выполнены шаги 2.5 (правки `minor (deferred)` до выкладки в `research-station`), 3.2 (кнопка «Библиотека» в карточке Elephantology и оверлей книжной полки `#/library` с поиском по названию, короткому названию и заголовкам `h2`, корешками по дисциплинам и справочниками в `#4F5552`), 3.3 (ссылки на уроки Elephantorina и практику Keeper Sim в блоке «Дальше») и 3.4 (живая деталь на полке: лампа и спящий кот на стопке книг с учётом `prefers-reduced-motion`).
 - 2026-11-14 — в 3.3 выдуманные id уроков Elephantorina (`track-anatomy/les-trunk` и т. п.) заменены настоящими из Приложения A; Elephantorina научилась открывать урок по `?course=&lesson=` (#9). 2.5 возвращён в «не сделано».
 - 2026-11-14 — 2.5 разобран на 2.5a–c; карточки помечены репозиторием, добавлены 3.5 и 3.6.
+- 2026-11-14 — сделаны 2.5a (#6), 2.5b (#5), 2.5c (elephantology#13), 3.1 (elephantology#14), 3.5 (elephantorina#10); PR открыты, ждут слияния автора. Остались шаги автора: 2.3 уже выполнен (#12 слит), 2.4 WebKit, 2.6 телефон, 3.6 текст о Keeper Sim, «Решает автор».
