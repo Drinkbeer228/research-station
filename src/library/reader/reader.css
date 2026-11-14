@@ -1129,7 +1129,7 @@ html.ers-library-open body {
   position: absolute;
   left: 0;
   right: 0;
-  bottom: 4px;
+  bottom: calc(4px + env(safe-area-inset-bottom, 0px));
   z-index: 9;
   text-align: center;
   color: rgba(255, 240, 214, .86);
@@ -1915,5 +1915,13 @@ html.ers-library-open body {
   .ers-reader .sh-spine,
   .ers-reader .sh-ref-book {
     transition: none;
+  }
+}
+
+/* Fingers need 44 px targets (WCAG 2.5.5); the bar buttons are 40 px for a mouse. */
+@media (pointer: coarse) {
+  .ers-reader .rd-btn {
+    height: 44px;
+    min-width: 44px;
   }
 }

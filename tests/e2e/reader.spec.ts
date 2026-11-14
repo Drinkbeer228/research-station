@@ -671,6 +671,50 @@ test.describe('scenarios', () => {
     });
   }
 
+  test('a reader who returns to a place in the book is not shown the cover again', async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await openBook(page);
+    await turn(page);
+    await page.reload();
+    await expect(page.locator('.rd-pg.sr .rd-folio')).toBeAttached();
+    await expect(page.locator('.rd-cover')).toHaveCount(0);
+  });
+
+  test('after a mouse click a bar button lets go of the focus, so Space turns the page', async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await openBook(page);
+    await page.getByRole('button', { name: /^Лампа/ }).click();
+    expect((await page.evaluate(() => (document.activeElement as HTMLElement | null)?.getAttribute('aria-label'))) ?? '').not.toMatch(/^Лампа/);
+    const was = await counter(page).textContent();
+    await page.keyboard.press('Space');
+    await expect(counter(page)).not.toHaveText(was!);
+  });
+
+  test('when «А−» becomes disabled the focus stays in the font menu', async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await openBook(page);
+    await page.getByRole('button', { name: /^Aa/ }).click();
+    const less = page.getByRole('button', { name: 'Мельче' });
+    for (let i = 0; i < 8 && !(await less.isDisabled()); i++) {
+      await less.focus();
+      await page.keyboard.press('Enter');
+      await laidOut(page);
+    }
+    await expect(less).toBeDisabled();
+    expect(await page.evaluate(() => !!document.activeElement?.closest('.rd-pop'))).toBe(true);
+  });
+
+  test('on a phone the bookmark menu stays open when the address bar changes the height', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await openBook(page);
+    await page.getByRole('button', { name: /^Ещё/ }).click();
+    await page.locator('.rd-pop [data-k="bm"]').click();
+    await expect(page.locator('.rd-pop[aria-label="Закладки"]')).toBeVisible();
+    await page.setViewportSize({ width: 390, height: 780 });
+    await laidOut(page);
+    await expect(page.locator('.rd-pop[aria-label="Закладки"]')).toBeVisible();
+  });
+
   test('the «Библиотека» button in the Elephantology card opens the bookshelf overlay (#/library), filters by h2 heading, opens a book, and restores campus state on close', async ({ page }) => {
     await page.emulateMedia({ reducedMotion: 'reduce' });
     await serveLibrary(page);
