@@ -770,7 +770,7 @@ test.describe('scenarios', () => {
     await settle(page);
     await expect(page.locator('.rd-measure .fm-next li.fm-next-ext a[data-project="elephantorina"]')).toHaveAttribute(
       'href',
-      'https://drinkbeer228.github.io/elephantorina/?course=track-4-evolution&lesson=lesson-3-18-1',
+      'https://drinkbeer228.github.io/elephantorina/?book=anatomy/muscular-hydrostat-and-trunk-biomechanics',
     );
     await expect(page.locator('.rd-measure .fm-next li.fm-next-ext a[data-project="keeper"]')).toHaveAttribute(
       'href',

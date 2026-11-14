@@ -300,6 +300,8 @@ export interface Scene {
 
 ### 5.3 Elephantorina: ссылка на урок
 
+> **Обновлено 2026-11-14.** Elephantorina переделана в экзаменационный зал станции: тесты привязаны к книгам, а не к урокам. Ссылка теперь `https://drinkbeer228.github.io/elephantorina/?book=<id книги>`, список книг с тестами — `ELEPHANTORINA_BOOKS` в `src/library/connections.ts`. Старые ссылки `?course=&lesson=` Elephantorina по-прежнему понимает и переводит на книгу. Текст ниже — исходное решение.
+
 Ссылка выглядит так: `https://drinkbeer228.github.io/elephantorina/?course=<trackId>&lesson=<lessonId>`.
 
 - Нужны оба параметра, потому что `id` модулей и уроков 25–28 повторяются в треках IV и V. Для уроков когнитивистики ссылка ведёт в трек V.

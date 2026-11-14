@@ -27,7 +27,7 @@ test('formats Elephantorina and Keeper Sim URLs accurately', () => {
   assert.ok(trunk?.elephantorina);
   assert.equal(
     trunk.elephantorina.url,
-    'https://drinkbeer228.github.io/elephantorina/?course=track-4-evolution&lesson=lesson-3-18-1',
+    'https://drinkbeer228.github.io/elephantorina/?book=anatomy/muscular-hydrostat-and-trunk-biomechanics',
   );
   assert.ok(trunk?.keeper);
   assert.equal(trunk.keeper.url, 'https://drinkbeer228.github.io/Elephant-keeper-/');
