@@ -99,6 +99,8 @@ function copyChildren(from: Node, to: Node, doc: Document, ancestors: string[]):
   for (let child = from.firstChild; child; child = child.nextSibling) copyNode(child, to, doc, ancestors);
 }
 
+const isSource = (name: string): boolean => /^src(set)?$/i.test(name);
+
 function copyNode(node: Node, to: Node, doc: Document, ancestors: string[]): void {
   if (node.nodeType === 3) {
     to.appendChild(doc.createTextNode(node.nodeValue ?? ''));
@@ -113,9 +115,16 @@ function copyNode(node: Node, to: Node, doc: Document, ancestors: string[]): voi
     return;
   }
   const out = doc.createElementNS(el.namespaceURI || HTML_NS, tag);
-  for (const attr of Array.from(el.attributes)) {
+  // `src` goes last: set before `loading`, it would start an eager fetch of a detached image.
+  const attrs = Array.from(el.attributes).sort((a, b) => Number(isSource(a.name)) - Number(isSource(b.name)));
+  for (const attr of attrs) {
     const value = allowedValue(tag, attr.name.toLowerCase(), attr.value);
-    if (value !== null) out.setAttribute(attr.name.toLowerCase(), value);
+    if (value === null) continue;
+    try {
+      out.setAttribute(attr.name.toLowerCase(), value);
+    } catch {
+      // A name the browser refuses (not a valid XML name) drops that one attribute, not the book.
+    }
   }
   // An image whose source was refused would still ask the browser for nothing, but it is an empty box: drop it.
   if (tag === 'img' && !out.hasAttribute('src')) return;

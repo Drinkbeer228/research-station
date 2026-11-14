@@ -179,3 +179,11 @@ test('filters unknown related book ids before taking up to 4 related books and i
   assert.equal(extLinks[1].getAttribute('href'), 'https://drinkbeer228.github.io/Elephant-keeper-/');
   assert.match(extLinks[1].textContent!, /На практике · Elephant Keeper/);
 });
+
+test('only https: addresses become links', async () => {
+  const { isHttps } = await import('../reader/bookDom');
+  assert.equal(isHttps('https://drinkbeer228.github.io/elephantology/article/a/'), true);
+  assert.equal(isHttps('javascript:alert(1)'), false);
+  assert.equal(isHttps('http://example.org/'), false);
+  assert.equal(isHttps('not a url'), false);
+});

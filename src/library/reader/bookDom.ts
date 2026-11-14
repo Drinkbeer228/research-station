@@ -172,11 +172,21 @@ function people(doc: Document, list: Contributor[]): HTMLElement {
   return ul;
 }
 
+/** A link only for `https:` addresses; anything else (a `javascript:` or a typo in the data) stays plain text. */
 function linkTo(doc: Document, href: string, text: string): HTMLElement {
+  if (!isHttps(href)) return el(doc, 'span', undefined, text);
   const a = el(doc, 'a', undefined, text);
   a.setAttribute('href', href);
   a.setAttribute('rel', 'noopener');
   return a;
+}
+
+export function isHttps(href: string): boolean {
+  try {
+    return new URL(href).protocol === 'https:';
+  } catch {
+    return false;
+  }
 }
 
 function endPage(doc: Document, catalog: CatalogFile, entry: CatalogBook, memory: BookMemory | null): HTMLElement {
